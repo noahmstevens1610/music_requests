@@ -141,12 +141,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { data: event, error: eventError } = await supabaseAdmin
-    .from("events")
-    .select("id")
-    .eq("slug", eventSlug)
-    .eq("active", true)
-    .maybeSingle();
+  const { data: event, error: eventError } =
+    await supabaseAdmin
+      .from("events")
+      .select("id")
+      .eq("slug", eventSlug)
+      .eq("active", true)
+      .maybeSingle();
 
   if (eventError) {
     return NextResponse.json(
@@ -157,19 +158,24 @@ export async function POST(request: NextRequest) {
 
   if (!event) {
     return NextResponse.json(
-      { error: "Event was not found or is inactive." },
+      {
+        error:
+          "Event was not found or is inactive.",
+      },
       { status: 404 }
     );
   }
 
-  const { data: existingRequest, error: existingError } =
-    await supabaseAdmin
-      .from("requests")
-      .select("id, votes")
-      .eq("event_id", event.id)
-      .eq("spotify_track_id", track.id)
-      .eq("request_type", requestType)
-      .maybeSingle();
+  const {
+    data: existingRequest,
+    error: existingError,
+  } = await supabaseAdmin
+    .from("requests")
+    .select("id, votes")
+    .eq("event_id", event.id)
+    .eq("spotify_track_id", track.id)
+    .eq("request_type", requestType)
+    .maybeSingle();
 
   if (existingError) {
     return NextResponse.json(
@@ -179,12 +185,13 @@ export async function POST(request: NextRequest) {
   }
 
   if (existingRequest) {
-    const { error: voteError } = await supabaseAdmin
-      .from("votes")
-      .insert({
-        request_id: existingRequest.id,
-        device_id: deviceId,
-      });
+    const { error: voteError } =
+      await supabaseAdmin
+        .from("votes")
+        .insert({
+          request_id: existingRequest.id,
+          device_id: deviceId,
+        });
 
     if (voteError?.code === "23505") {
       return NextResponse.json(
@@ -203,15 +210,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: updatedRequest, error: updateError } =
-      await supabaseAdmin
-        .from("requests")
-        .update({
-          votes: existingRequest.votes + 1,
-        })
-        .eq("id", existingRequest.id)
-        .select()
-        .single();
+    const {
+      data: updatedRequest,
+      error: updateError,
+    } = await supabaseAdmin
+      .from("requests")
+      .update({
+        votes:
+          existingRequest.votes + 1,
+      })
+      .eq("id", existingRequest.id)
+      .select()
+      .single();
 
     if (updateError) {
       return NextResponse.json(
@@ -226,25 +236,72 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const { data: createdRequest, error: createError } =
-    await supabaseAdmin
-      .from("requests")
-      .insert({
-        event_id: event.id,
-        spotify_track_id: track.id,
-        spotify_uri: track.uri,
-        track_name: track.name,
-        artist_name: track.artist,
-        album_name: track.album ?? null,
-        album_image: track.image ?? null,
-        explicit: track.explicit ?? false,
-        device_id: deviceId,
-        votes: 1,
-        status: "pending",
-        request_type: requestType,
-      })
-      .select()
-      .single();
+  let selectedLineDanceId: string | null =
+    null;
+
+  if (requestType === "line_dance") {
+    const {
+      data: matchingLineDances,
+      error: lineDanceLookupError,
+    } = await supabaseAdmin
+      .from("line_dance_songs")
+      .select("line_dance_id")
+      .eq(
+        "spotify_track_id",
+        track.id
+      );
+
+    if (lineDanceLookupError) {
+      return NextResponse.json(
+        {
+          error:
+            lineDanceLookupError.message,
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    const uniqueDanceIds = [
+      ...new Set(
+        (matchingLineDances ?? []).map(
+          (dance) =>
+            dance.line_dance_id
+        )
+      ),
+    ];
+
+    if (uniqueDanceIds.length === 1) {
+      selectedLineDanceId =
+        uniqueDanceIds[0];
+    }
+  }
+
+  const {
+    data: createdRequest,
+    error: createError,
+  } = await supabaseAdmin
+    .from("requests")
+    .insert({
+      event_id: event.id,
+      spotify_track_id: track.id,
+      spotify_uri: track.uri,
+      track_name: track.name,
+      artist_name: track.artist,
+      album_name: track.album ?? null,
+      album_image: track.image ?? null,
+      explicit:
+        track.explicit ?? false,
+      device_id: deviceId,
+      votes: 1,
+      status: "pending",
+      request_type: requestType,
+      selected_line_dance_id:
+        selectedLineDanceId,
+    })
+    .select()
+    .single();
 
   if (createError) {
     return NextResponse.json(
@@ -253,12 +310,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { error: firstVoteError } = await supabaseAdmin
-    .from("votes")
-    .insert({
-      request_id: createdRequest.id,
-      device_id: deviceId,
-    });
+  const { error: firstVoteError } =
+    await supabaseAdmin
+      .from("votes")
+      .insert({
+        request_id: createdRequest.id,
+        device_id: deviceId,
+      });
 
   if (firstVoteError) {
     await supabaseAdmin
