@@ -221,37 +221,35 @@ export default function MusicRequestPage() {
     if (type === "swing") {
       return (
         <svg
-          viewBox="0 0 48 48"
+          viewBox="0 0 64 64"
           aria-hidden="true"
-          className="h-9 w-9 shrink-0 text-[#c4202f]"
+          className="h-10 w-10 shrink-0 text-[#c4202f]"
           fill="none"
           stroke="currentColor"
-          strokeWidth="3.5"
+          strokeWidth="4"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <path d="M18 35V11l20-5v24" />
-          <ellipse cx="12" cy="36" rx="7" ry="5" />
-          <ellipse cx="32" cy="31" rx="7" ry="5" />
+          <path d="M25 43V15l25-6v27" />
+          <path d="M25 22l25-6" />
+          <ellipse cx="17" cy="45" rx="9" ry="6" fill="currentColor" stroke="none" />
+          <ellipse cx="42" cy="38" rx="9" ry="6" fill="currentColor" stroke="none" />
+          <path d="M8 17h8M5 25h11" opacity="0.65" />
         </svg>
       );
     }
 
     return (
       <svg
-        viewBox="0 0 48 48"
+        viewBox="0 0 64 64"
         aria-hidden="true"
-        className="h-10 w-10 shrink-0 text-[#c4202f]"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        className="h-11 w-11 shrink-0 text-[#c4202f]"
+        fill="currentColor"
       >
-        <path d="M18 5h10l2 15 8 8v9H15c-4 0-7-3-7-7v-3h10V5Z" />
-        <path d="M18 27h12" />
-        <path d="M19 11h10M20 16h10" />
-        <path d="M15 37v5h25v-5" />
+        <path d="M18 5h18c1.8 0 3.3 1.3 3.6 3.1l2.5 18.1c.5 3.8 2.6 7.2 5.8 9.4l8.2 5.7c1.2.8 1.9 2.2 1.9 3.7v5.5c0 2.5-2 4.5-4.5 4.5H23c-8.3 0-15-6.7-15-15v-5.2c0-1.5 1.2-2.8 2.8-2.8H20V9c0-2.2-1.8-4-4-4h2Zm8 6v21H14v2.8C14 42.1 18.9 47 25 47h26v-1.5l-7.1-4.9c-4.8-3.3-8-8.4-8.8-14.1L33 11h-7Z" />
+        <path d="M24 17h11v4H24zM24 25h12v4H24z" opacity="0.55" />
+        <path d="M20 51h37v6H20z" />
+        <path d="M8 38h14v7H8z" />
       </svg>
     );
   }
