@@ -78,6 +78,9 @@ export default function AdminPage() {
   const [queueingId, setQueueingId] =
     useState<string | null>(null);
 
+  const [changingCategoryId, setChangingCategoryId] =
+    useState<string | null>(null);
+
   const [editingTrackId, setEditingTrackId] =
     useState<string | null>(null);
 
@@ -252,14 +255,15 @@ export default function AdminPage() {
       }
 
       setRequests((currentRequests) =>
-        currentRequests.filter(
-          (request) =>
-            request.id !== requestId
+        currentRequests.map((request) =>
+          request.id === requestId
+            ? { ...request, status: "added" }
+            : request
         )
       );
 
       setMessage(
-        "Song added to the playlist and removed from requests."
+        "Song added to the running queue."
       );
     } catch (error) {
       setError(
@@ -269,6 +273,65 @@ export default function AdminPage() {
       );
     } finally {
       setQueueingId(null);
+    }
+  }
+
+  async function updateRequestType(
+    requestId: string,
+    requestType: "swing" | "line_dance"
+  ) {
+    try {
+      setError("");
+      setMessage("");
+      setChangingCategoryId(requestId);
+
+      const response = await fetch(
+        "/api/admin/request",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            requestId,
+            requestType,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ??
+            "Unable to change the song category."
+        );
+      }
+
+      setRequests((currentRequests) =>
+        currentRequests.map((request) =>
+          request.id === requestId
+            ? {
+                ...request,
+                request_type: requestType,
+              }
+            : request
+        )
+      );
+
+      setMessage(
+        requestType === "line_dance"
+          ? "Song changed to Line Dance."
+          : "Song changed to Swing Song."
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to change the song category."
+      );
+    } finally {
+      setChangingCategoryId(null);
     }
   }
 
@@ -501,20 +564,28 @@ export default function AdminPage() {
       window.clearInterval(interval);
   }, [slug]);
 
-  const activeRequests = requests.filter(
+  const visibleRequests = requests.filter(
     (request) =>
       request.status !== "played" &&
       request.status !== "removed"
   );
 
+  const runningQueue = visibleRequests.filter(
+    (request) => request.status === "added"
+  );
+
+  const pendingRequests = visibleRequests.filter(
+    (request) => request.status !== "added"
+  );
+
   const swingRequests =
-    activeRequests.filter(
+    pendingRequests.filter(
       (request) =>
         request.request_type === "swing"
     );
 
   const lineDanceRequests =
-    activeRequests.filter(
+    pendingRequests.filter(
       (request) =>
         request.request_type ===
         "line_dance"
@@ -522,8 +593,12 @@ export default function AdminPage() {
 
   function RequestCard({
     request,
+    queued = false,
+    queuePosition,
   }: {
     request: RequestItem;
+    queued?: boolean;
+    queuePosition?: number;
   }) {
     const isQueueing =
       queueingId === request.id;
@@ -542,6 +617,9 @@ export default function AdminPage() {
 
     const songMetadata =
       metadata[request.spotify_track_id];
+
+    const isChangingCategory =
+      changingCategoryId === request.id;
 
     return (
       <div className="rounded-2xl border border-neutral-800 p-4">
@@ -580,6 +658,56 @@ export default function AdminPage() {
                   ? "vote"
                   : "votes"}
               </p>
+
+              {queued && queuePosition && (
+                <p className="mt-2 font-heading text-lg uppercase tracking-[0.08em] text-[#ff7b86]">
+                  Queue Position {queuePosition}
+                </p>
+              )}
+
+              <div className="mt-3">
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-neutral-500">
+                  Song Type
+                </p>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={isChangingCategory}
+                    onClick={() =>
+                      updateRequestType(
+                        request.id,
+                        "swing"
+                      )
+                    }
+                    className={`rounded-lg border px-3 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      request.request_type === "swing"
+                        ? "border-[#c4202f] bg-[#c4202f] text-white"
+                        : "border-neutral-700 bg-neutral-950 text-neutral-300 hover:border-neutral-500"
+                    }`}
+                  >
+                    Swing Song
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isChangingCategory}
+                    onClick={() =>
+                      updateRequestType(
+                        request.id,
+                        "line_dance"
+                      )
+                    }
+                    className={`rounded-lg border px-3 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      request.request_type === "line_dance"
+                        ? "border-[#c4202f] bg-[#c4202f] text-white"
+                        : "border-neutral-700 bg-neutral-950 text-neutral-300 hover:border-neutral-500"
+                    }`}
+                  >
+                    Line Dance
+                  </button>
+                </div>
+              </div>
 
               {songMetadata && (
                 <div className="mt-3 space-y-1 text-sm">
@@ -642,23 +770,35 @@ export default function AdminPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={
-                isQueueing ||
-                request.status === "added"
-              }
-              onClick={() =>
-                addToPlaylist(request.id)
-              }
-              className="rounded-xl bg-blue-600 px-4 py-3 font-semibold hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {request.status === "added"
-                ? "Added"
-                : isQueueing
-                ? "Adding..."
-                : "Add"}
-            </button>
+            {!queued && (
+              <button
+                type="button"
+                disabled={isQueueing}
+                onClick={() =>
+                  addToPlaylist(request.id)
+                }
+                className="rounded-xl bg-blue-600 px-4 py-3 font-semibold hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isQueueing
+                  ? "Adding..."
+                  : "Add to Queue"}
+              </button>
+            )}
+
+            {queued && (
+              <button
+                type="button"
+                onClick={() =>
+                  updateStatus(
+                    request.id,
+                    "played"
+                  )
+                }
+                className="rounded-xl bg-green-700 px-4 py-3 font-semibold hover:bg-green-600"
+              >
+                Played
+              </button>
+            )}
 
             <button
               type="button"
@@ -917,53 +1057,95 @@ export default function AdminPage() {
       {loading ? (
         <p>Loading requests...</p>
       ) : (
-        <div className="grid gap-8 lg:grid-cols-2">
-          <section>
-            <h2 className="mb-4 text-2xl font-bold">
-              Line Dances
-            </h2>
+        <div className="space-y-10">
+          <section className="rounded-2xl border border-[#c4202f]/60 bg-[#c4202f]/5 p-4 sm:p-6">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#ff7b86]">
+                  Live
+                </p>
+                <h2 className="mt-1 text-3xl font-bold">
+                  Running Queue
+                </h2>
+              </div>
+
+              <p className="text-sm text-neutral-400">
+                {runningQueue.length}{" "}
+                {runningQueue.length === 1
+                  ? "song"
+                  : "songs"}{" "}
+                queued
+              </p>
+            </div>
 
             <div className="space-y-4">
-              {lineDanceRequests.map(
-                (request) => (
+              {runningQueue.map(
+                (request, index) => (
                   <RequestCard
                     key={request.id}
                     request={request}
+                    queued
+                    queuePosition={index + 1}
                   />
                 )
               )}
 
-              {lineDanceRequests.length ===
-                0 && (
-                <p className="text-neutral-500">
-                  No line dance requests.
+              {runningQueue.length === 0 && (
+                <p className="rounded-xl border border-dashed border-neutral-700 p-8 text-center text-neutral-500">
+                  The running queue is empty.
                 </p>
               )}
             </div>
           </section>
 
-          <section>
-            <h2 className="mb-4 text-2xl font-bold">
-              Swing Songs
-            </h2>
+          <div className="grid gap-8 lg:grid-cols-2">
+            <section>
+              <h2 className="mb-4 text-2xl font-bold">
+                Line Dances
+              </h2>
 
-            <div className="space-y-4">
-              {swingRequests.map(
-                (request) => (
-                  <RequestCard
-                    key={request.id}
-                    request={request}
-                  />
-                )
-              )}
+              <div className="space-y-4">
+                {lineDanceRequests.map(
+                  (request) => (
+                    <RequestCard
+                      key={request.id}
+                      request={request}
+                    />
+                  )
+                )}
 
-              {swingRequests.length === 0 && (
-                <p className="text-neutral-500">
-                  No swing requests.
-                </p>
-              )}
-            </div>
-          </section>
+                {lineDanceRequests.length ===
+                  0 && (
+                  <p className="text-neutral-500">
+                    No line dance requests.
+                  </p>
+                )}
+              </div>
+            </section>
+
+            <section>
+              <h2 className="mb-4 text-2xl font-bold">
+                Swing Songs
+              </h2>
+
+              <div className="space-y-4">
+                {swingRequests.map(
+                  (request) => (
+                    <RequestCard
+                      key={request.id}
+                      request={request}
+                    />
+                  )
+                )}
+
+                {swingRequests.length === 0 && (
+                  <p className="text-neutral-500">
+                    No swing requests.
+                  </p>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
       )}
     </main>
