@@ -269,15 +269,15 @@ export default function MusicRequestPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black px-4 py-7 text-white sm:px-6 sm:py-10">
+    <main className="relative min-h-screen overflow-hidden bg-black px-4 pb-7 pt-0 text-white sm:px-6 sm:pb-10 sm:pt-0">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.22),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_32%)]" />
 
       <div className="relative mx-auto max-w-6xl">
-        <header className="overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b0b]/95 shadow-2xl">
+        <header className="-mx-4 overflow-hidden sm:-mx-6">
           <img
             src="/song-requests-banner.png"
             alt={`${eventName} song requests`}
-            className="h-auto w-full object-cover"
+            className="block h-auto w-full object-contain"
           />
         </header>
 
