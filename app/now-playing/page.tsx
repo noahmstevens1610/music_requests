@@ -1,13 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
 
 type RequestType = "swing" | "line_dance";
-
 type QueueAnimation = "idle" | "slide-out" | "slide-in";
-
-type DisplayScale = "small" | "medium" | "large";
 
 type LineDanceInfo = {
   id?: string;
@@ -41,99 +37,8 @@ type PlaybackResponse = {
   updatedAt: string;
 };
 
-type DisplaySettings = {
-  scale: DisplayScale;
-  queueCount: 1 | 2 | 3;
-  showQrCode: boolean;
-  showVideo: boolean;
-};
-
-const STORAGE_KEY = "big-iron-now-playing-display-settings";
-
-const DEFAULT_SETTINGS: DisplaySettings = {
-  scale: "medium",
-  queueCount: 3,
-  showQrCode: true,
-  showVideo: true,
-};
-
-function formatSlug(slug: string): string {
-  return slug
-    .split("-")
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
-function CategoryBadge({
-  requestType,
-  compact = false,
-}: {
-  requestType: RequestType;
-  compact?: boolean;
-}) {
-  const isLineDance = requestType === "line_dance";
-
-  return (
-    <span
-      className={`inline-flex rounded-full border font-black uppercase ${
-        compact
-          ? "px-2 py-0.5 text-[8px] tracking-[0.08em]"
-          : "px-3 py-1 text-[10px] tracking-[0.12em]"
-      } ${
-        isLineDance
-          ? "border-[#c4202f]/60 bg-[#c4202f]/20 text-[#ffadb5]"
-          : "border-white/25 bg-white/10 text-white"
-      }`}
-    >
-      {isLineDance ? "Line Dance" : "Swing Song"}
-    </span>
-  );
-}
-
-function SongVersionBadge({
-  isOriginalSong,
-  compact = false,
-}: {
-  isOriginalSong: boolean;
-  compact?: boolean;
-}) {
-  return (
-    <span
-      className={`inline-flex rounded-full border font-black uppercase ${
-        compact
-          ? "px-2 py-0.5 text-[8px] tracking-[0.06em]"
-          : "px-3 py-1 text-[10px] tracking-[0.1em]"
-      } ${
-        isOriginalSong
-          ? "border-white/30 bg-white/10 text-white"
-          : "border-[#c4202f]/60 bg-[#c4202f]/20 text-[#ffadb5]"
-      }`}
-    >
-      {isOriginalSong ? "Original Song" : "Song Swap"}
-    </span>
-  );
-}
-
-function ChoreographyBadge({
-  name,
-  compact = false,
-}: {
-  name: string;
-  compact?: boolean;
-}) {
-  return (
-    <span
-      className={`inline-flex max-w-full rounded-full border border-white/25 bg-white/10 font-black uppercase text-white ${
-        compact
-          ? "px-2 py-0.5 text-[8px] tracking-[0.06em]"
-          : "px-3 py-1 text-[10px] tracking-[0.1em]"
-      }`}
-      title={name}
-    >
-      <span className="truncate">{name}</span>
-    </span>
-  );
+function categoryLabel(type: RequestType) {
+  return type === "line_dance" ? "Line Dance" : "Swing Song";
 }
 
 function AlbumArtwork({
@@ -155,99 +60,131 @@ function AlbumArtwork({
 
   return (
     <div
-      className={`${className} flex items-center justify-center bg-[#151515] text-5xl text-white/25`}
+      className={`${className} flex items-center justify-center bg-[#151515] text-6xl text-white/20`}
     >
       ♪
     </div>
   );
 }
 
-function QueueTrack({
+function EmptyArtwork({ className = "" }: { className?: string }) {
+  return (
+    <div
+      className={`flex items-center justify-center bg-[#111111] text-center ${className}`}
+    >
+      <div>
+        <p className="font-heading text-4xl uppercase tracking-[0.08em] text-white/35">
+          No Song
+        </p>
+        <p className="mt-2 text-sm uppercase tracking-[0.22em] text-white/25">
+          Waiting for playback
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SongTags({ track }: { track: PlaybackTrack }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <div className="border border-white/10 bg-black/35 px-3 py-2">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
+          Category
+        </p>
+        <p className="font-heading mt-1 truncate text-lg uppercase tracking-[0.04em] text-[#ff7b86]">
+          {categoryLabel(track.requestType)}
+        </p>
+      </div>
+
+      <div className="border border-white/10 bg-black/35 px-3 py-2">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
+          Version
+        </p>
+        <p className="font-heading mt-1 truncate text-lg uppercase tracking-[0.04em] text-white">
+          {track.lineDance
+            ? track.lineDance.isOriginalSong
+              ? "Original"
+              : "Song Swap"
+            : "—"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function QueueItem({
   track,
   index,
-  scale,
 }: {
   track: PlaybackTrack;
   index: number;
-  scale: DisplayScale;
 }) {
-  const compact = scale === "small";
-
   return (
-    <article
-      className={`flex min-w-0 items-center overflow-hidden rounded-2xl border border-white/15 bg-[#111111] shadow-lg ${
-        compact ? "gap-2 p-2" : "gap-3 p-3"
-      }`}
-    >
-      <span
-        className={`flex shrink-0 items-center justify-center rounded-full bg-[#c4202f] font-black text-white shadow-md ${
-          compact ? "h-7 w-7 text-xs" : "h-9 w-9 text-sm"
-        }`}
-      >
+    <article className="grid grid-cols-[46px_64px_minmax(0,1fr)] items-center gap-3 border-b border-white/10 px-3 py-3 last:border-b-0">
+      <div className="font-heading text-center text-2xl text-[#c4202f]">
         {index + 1}
-      </span>
+      </div>
 
       <AlbumArtwork
         track={track}
-        className={`aspect-square shrink-0 rounded-xl border border-white/10 object-cover ${
-          compact
-            ? "h-12 w-12"
-            : scale === "large"
-              ? "h-20 w-20"
-              : "h-16 w-16"
-        }`}
+        className="h-16 w-16 border border-white/10 object-cover"
       />
 
-      <div className="min-w-0 flex-1">
-        <h3
-          className={`truncate font-black text-white ${
-            compact ? "text-sm" : "text-base"
-          }`}
-        >
+      <div className="min-w-0">
+        <h3 className="truncate text-sm font-extrabold text-white">
           {track.trackName}
         </h3>
-
-        <p
-          className={`mt-1 truncate text-white/60 ${
-            compact ? "text-[10px]" : "text-xs"
-          }`}
-        >
+        <p className="mt-1 truncate text-xs text-white/55">
           {track.artistName}
         </p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <span className="border border-[#c4202f]/55 bg-[#c4202f]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#ff9aa3]">
+            {categoryLabel(track.requestType)}
+          </span>
 
-        {track.albumName && (
-          <p className="mt-1 truncate text-[10px] text-white/35">
-            Album: {track.albumName}
-          </p>
-        )}
-      </div>
-
-      <div className="flex max-w-[44%] shrink-0 flex-col items-end gap-1 text-right">
-        <CategoryBadge requestType={track.requestType} compact={compact} />
-
-        {track.lineDance ? (
-          <>
-            <ChoreographyBadge
-              name={track.lineDance.name}
-              compact={compact}
-            />
-
-            <SongVersionBadge
-              isOriginalSong={track.lineDance.isOriginalSong}
-              compact={compact}
-            />
-          </>
-        ) : null}
+          {track.lineDance ? (
+            <>
+              <span className="max-w-[150px] truncate border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.06em] text-white/75">
+                {track.lineDance.name}
+              </span>
+              <span className="border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.06em] text-white/60">
+                {track.lineDance.isOriginalSong ? "Original" : "Song Swap"}
+              </span>
+            </>
+          ) : null}
+        </div>
       </div>
     </article>
   );
 }
 
+function PlaceholderPanel({
+  label,
+  large = false,
+}: {
+  label: string;
+  large?: boolean;
+}) {
+  return (
+    <div className="flex h-full min-h-0 items-center justify-center border border-[#c4202f]/45 bg-[#0c0c0c]">
+      <div className="text-center">
+        <p
+          className={`font-heading uppercase tracking-[0.1em] text-white/30 ${
+            large ? "text-5xl" : "text-3xl"
+          }`}
+        >
+          {label}
+        </p>
+        <div className="mx-auto mt-4 h-px w-24 bg-[#c4202f]/50" />
+      </div>
+    </div>
+  );
+}
+
 function getPlaybackSignature(playback: PlaybackResponse): string {
   const nowPlayingId = playback.nowPlaying?.spotifyTrackId ?? "none";
-
   const upcomingIds = playback.upcoming
-    .slice(0, 3)
+    .slice(0, 4)
     .map((track) => track.spotifyTrackId)
     .join("|");
 
@@ -255,71 +192,19 @@ function getPlaybackSignature(playback: PlaybackResponse): string {
 }
 
 export default function NowPlayingPage() {
-  const slug = "big-iron";
-  const eventName = formatSlug(slug);
-
   const [playback, setPlayback] = useState<PlaybackResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [queueAnimation, setQueueAnimation] =
     useState<QueueAnimation>("idle");
-
   const [nowPlayingTransitioning, setNowPlayingTransitioning] =
     useState(false);
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [displaySettings, setDisplaySettings] =
-    useState<DisplaySettings>(DEFAULT_SETTINGS);
-
   const playbackRef = useRef<PlaybackResponse | null>(null);
-
   const transitionTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const slideInTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    try {
-      const savedSettings = window.localStorage.getItem(STORAGE_KEY);
-
-      if (!savedSettings) {
-        return;
-      }
-
-      const parsed = JSON.parse(savedSettings) as Partial<DisplaySettings>;
-
-      setDisplaySettings({
-        scale:
-          parsed.scale === "small" ||
-          parsed.scale === "medium" ||
-          parsed.scale === "large"
-            ? parsed.scale
-            : DEFAULT_SETTINGS.scale,
-        queueCount:
-          parsed.queueCount === 1 ||
-          parsed.queueCount === 2 ||
-          parsed.queueCount === 3
-            ? parsed.queueCount
-            : DEFAULT_SETTINGS.queueCount,
-        showQrCode:
-          typeof parsed.showQrCode === "boolean"
-            ? parsed.showQrCode
-            : DEFAULT_SETTINGS.showQrCode,
-        showVideo:
-          typeof parsed.showVideo === "boolean"
-            ? parsed.showVideo
-            : DEFAULT_SETTINGS.showVideo,
-      });
-    } catch {
-      setDisplaySettings(DEFAULT_SETTINGS);
-    }
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(displaySettings));
-  }, [displaySettings]);
 
   async function loadPlayback() {
     try {
@@ -350,14 +235,11 @@ export default function NowPlayingPage() {
         return;
       }
 
-      const oldSignature = getPlaybackSignature(oldPlayback);
-      const newSignature = getPlaybackSignature(newPlayback);
-
-      if (oldSignature === newSignature) {
+      if (getPlaybackSignature(oldPlayback) === getPlaybackSignature(newPlayback)) {
         playbackRef.current = newPlayback;
         setPlayback(newPlayback);
-        setError("");
         setLoading(false);
+        setError("");
         return;
       }
 
@@ -381,25 +263,26 @@ export default function NowPlayingPage() {
           setQueueAnimation("idle");
           setNowPlayingTransitioning(false);
         }, 40);
-      }, 450);
+      }, 400);
 
-      setError("");
       setLoading(false);
+      setError("");
     } catch (loadError) {
       setError(
         loadError instanceof Error
           ? loadError.message
           : "Unable to load Spotify playback."
       );
-
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadPlayback();
+    void loadPlayback();
 
-    const interval = window.setInterval(loadPlayback, 5000);
+    const interval = window.setInterval(() => {
+      void loadPlayback();
+    }, 5000);
 
     return () => {
       window.clearInterval(interval);
@@ -414,538 +297,217 @@ export default function NowPlayingPage() {
     };
   }, []);
 
-  async function toggleFullscreen() {
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-        return;
-      }
-
-      await document.documentElement.requestFullscreen();
-    } catch {
-      // Some iPad/Safari versions do not support webpage fullscreen.
-    }
-  }
-
   const queueAnimationClass =
     queueAnimation === "slide-out"
-      ? "-translate-x-40 opacity-0"
+      ? "-translate-y-5 opacity-0"
       : queueAnimation === "slide-in"
-        ? "translate-x-40 opacity-0"
-        : "translate-x-0 opacity-100";
+        ? "translate-y-5 opacity-0"
+        : "translate-y-0 opacity-100";
 
-  const scale = displaySettings.scale;
-
-  const artworkSize =
-    scale === "small"
-      ? "clamp(225px, 29vw, 280px)"
-      : scale === "large"
-        ? "clamp(300px, 37vw, 410px)"
-        : "clamp(260px, 33vw, 340px)";
-
-  const queueHeight =
-    scale === "small" ? "138px" : scale === "large" ? "190px" : "165px";
-
-  const pagePadding =
-    scale === "small"
-      ? "clamp(10px, 1.4vw, 18px)"
-      : scale === "large"
-        ? "clamp(18px, 2.4vw, 36px)"
-        : "clamp(14px, 2vw, 28px)";
-
-  const pageGap =
-    scale === "small"
-      ? "clamp(8px, 1vw, 12px)"
-      : scale === "large"
-        ? "clamp(14px, 1.6vw, 22px)"
-        : "clamp(10px, 1.3vw, 18px)";
-
-  const queueColumnClass =
-    displaySettings.queueCount === 1
-      ? "grid-cols-1"
-      : displaySettings.queueCount === 2
-        ? "grid-cols-2"
-        : "grid-cols-3";
-
-  const contentColumns = displaySettings.showVideo
-    ? `${artworkSize} minmax(0, 1fr)`
-    : "minmax(0, 1fr)";
+  const nowPlaying = playback?.nowPlaying ?? null;
+  const upcoming = playback?.upcoming.slice(0, 4) ?? [];
 
   return (
-    <main
-      className="h-[100dvh] overflow-hidden bg-black text-white"
-      style={{
-        padding: pagePadding,
-      }}
-    >
-      <div
-        className="mx-auto grid h-full max-w-[1550px] grid-rows-[auto_minmax(0,1fr)]"
-        style={{
-          gap: pageGap,
-        }}
-      >
-        <header
-          className={`flex justify-between border-b border-[#c4202f]/70 ${
-            scale === "small" ? "items-center pb-2" : "items-end pb-3"
-          }`}
-        >
-          <div className="min-w-0">
-            <p
-              className={`truncate font-bold uppercase text-white/50 ${
-                scale === "small"
-                  ? "text-[9px] tracking-[0.22em]"
-                  : "text-xs tracking-[0.35em]"
-              }`}
-            >
-              {eventName}
-            </p>
-
-            <h1
-              className={`mt-1 font-black uppercase tracking-tight text-white ${
-                scale === "small"
-                  ? "text-2xl"
-                  : scale === "large"
-                    ? "text-4xl"
-                    : "text-3xl"
-              }`}
-            >
-              Now Playing
-            </h1>
-
-            <div
-              className={`mt-2 rounded-full bg-[#c4202f] ${
-                scale === "small" ? "h-0.5 w-20" : "h-1 w-28"
-              }`}
-            />
-          </div>
-
-          <div className="relative flex shrink-0 items-center gap-2">
-            <div className="hidden items-center gap-2 text-sm font-semibold text-white/55 sm:flex">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#c4202f]" />
-              Live Spotify Queue
+    <main className="h-[100dvh] overflow-hidden bg-black p-3 text-white sm:p-4">
+      <div className="grid h-full min-h-0 grid-cols-[36%_64%] gap-3">
+        {/* LEFT COLUMN */}
+        <section className="grid min-h-0 grid-rows-[31%_18%_minmax(0,1fr)] gap-3">
+          {/* Album art + song tags */}
+          <div
+            className={`grid min-h-0 grid-cols-[50%_50%] overflow-hidden border border-white/10 bg-[#0d0d0d] transition-all duration-400 ${
+              nowPlayingTransitioning
+                ? "-translate-x-4 opacity-0"
+                : "translate-x-0 opacity-100"
+            }`}
+          >
+            <div className="min-h-0 border-r border-[#c4202f]/45">
+              {nowPlaying ? (
+                <AlbumArtwork
+                  track={nowPlaying}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <EmptyArtwork className="h-full w-full" />
+              )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setSettingsOpen((current) => !current)}
-              className="ml-1 flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/20 bg-[#111111] px-3 text-sm font-black text-white shadow-lg active:scale-95"
-              aria-expanded={settingsOpen}
-              aria-label="Open display settings"
-            >
-              ⚙
-              <span className="ml-2 hidden sm:inline">Display</span>
-            </button>
+            <div className="flex min-h-0 flex-col justify-center gap-3 p-3">
+              {nowPlaying ? (
+                <>
+                  <SongTags track={nowPlaying} />
 
-            {settingsOpen && (
-              <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(330px,calc(100vw-24px))] rounded-2xl border border-[#c4202f]/70 bg-[#101010] p-4 shadow-2xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-black uppercase tracking-[0.12em]">
-                      Display Settings
+                  <div className="border border-white/10 bg-black/35 px-3 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
+                      Choreography
                     </p>
-                    <p className="mt-1 text-xs text-white/45">
-                      Saved automatically on this iPad
+                    <p className="font-heading mt-1 line-clamp-2 text-lg uppercase tracking-[0.04em] text-white">
+                      {nowPlaying.lineDance?.name ?? "Not Applicable"}
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setSettingsOpen(false)}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-xl"
-                    aria-label="Close display settings"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="mt-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
-                    Page Size
+                  {nowPlaying.lineDance?.alsoKnownAs ? (
+                    <p className="line-clamp-2 text-[10px] leading-relaxed text-white/40">
+                      Also known as: {nowPlaying.lineDance.alsoKnownAs}
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <div className="text-center">
+                  <p className="font-heading text-3xl uppercase text-white/35">
+                    Waiting
                   </p>
-
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    {(["small", "medium", "large"] as DisplayScale[]).map(
-                      (option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() =>
-                            setDisplaySettings((current) => ({
-                              ...current,
-                              scale: option,
-                            }))
-                          }
-                          className={`min-h-11 rounded-xl border px-2 text-xs font-black uppercase ${
-                            scale === option
-                              ? "border-[#c4202f] bg-[#c4202f] text-white"
-                              : "border-white/15 bg-white/5 text-white/65"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      )
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
-                    Up Next Songs
+                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/25">
+                    Song details appear here
                   </p>
-
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    {([1, 2, 3] as const).map((count) => (
-                      <button
-                        key={count}
-                        type="button"
-                        onClick={() =>
-                          setDisplaySettings((current) => ({
-                            ...current,
-                            queueCount: count,
-                          }))
-                        }
-                        className={`min-h-11 rounded-xl border text-sm font-black ${
-                          displaySettings.queueCount === count
-                            ? "border-[#c4202f] bg-[#c4202f] text-white"
-                            : "border-white/15 bg-white/5 text-white/65"
-                        }`}
-                      >
-                        {count}
-                      </button>
-                    ))}
-                  </div>
                 </div>
-
-                <div className="mt-4 grid gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setDisplaySettings((current) => ({
-                        ...current,
-                        showVideo: !current.showVideo,
-                      }))
-                    }
-                    className="flex min-h-12 items-center justify-between rounded-xl border border-white/15 bg-white/5 px-4 text-left"
-                  >
-                    <span className="text-sm font-bold">Dance Video</span>
-                    <span
-                      className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ${
-                        displaySettings.showVideo
-                          ? "bg-[#c4202f] text-white"
-                          : "bg-white/10 text-white/45"
-                      }`}
-                    >
-                      {displaySettings.showVideo ? "Shown" : "Hidden"}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setDisplaySettings((current) => ({
-                        ...current,
-                        showQrCode: !current.showQrCode,
-                      }))
-                    }
-                    className="flex min-h-12 items-center justify-between rounded-xl border border-white/15 bg-white/5 px-4 text-left"
-                  >
-                    <span className="text-sm font-bold">Request QR Code</span>
-                    <span
-                      className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ${
-                        displaySettings.showQrCode
-                          ? "bg-[#c4202f] text-white"
-                          : "bg-white/10 text-white/45"
-                      }`}
-                    >
-                      {displaySettings.showQrCode ? "Shown" : "Hidden"}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={toggleFullscreen}
-                    className="min-h-12 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-black"
-                  >
-                    Toggle Fullscreen
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setDisplaySettings(DEFAULT_SETTINGS)}
-                    className="min-h-11 rounded-xl border border-white/10 px-4 text-xs font-black uppercase tracking-[0.1em] text-white/50"
-                  >
-                    Reset Display
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </header>
 
-        {loading && (
-          <div className="flex items-center justify-center rounded-3xl border border-[#c4202f]/50 bg-[#101010]">
-            <p className="text-xl font-bold">Loading playback…</p>
-          </div>
-        )}
-
-        {!loading && error && (
+          {/* Song information */}
           <div
-            role="alert"
-            className="flex flex-col items-center justify-center rounded-3xl border border-[#c4202f]/70 bg-[#2a080c] p-8 text-center"
+            className={`flex min-h-0 flex-col justify-center overflow-hidden border border-[#c4202f]/45 bg-[#0d0d0d] px-5 transition-all duration-400 ${
+              nowPlayingTransitioning
+                ? "-translate-x-4 opacity-0"
+                : "translate-x-0 opacity-100"
+            }`}
           >
-            <p className="text-xl font-black text-white">
-              Playback unavailable
+            <p className="font-heading text-base uppercase tracking-[0.18em] text-[#c4202f]">
+              Now Playing
             </p>
 
-            <p className="mt-2 text-sm text-white/60">{error}</p>
+            {nowPlaying ? (
+              <>
+                <h1 className="mt-1 line-clamp-1 text-2xl font-black leading-tight text-white xl:text-3xl">
+                  {nowPlaying.trackName}
+                </h1>
+                <p className="mt-1 truncate text-base text-white/60">
+                  {nowPlaying.artistName}
+                </p>
+                {nowPlaying.albumName ? (
+                  <p className="mt-1 truncate text-xs text-white/35">
+                    {nowPlaying.albumName}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <h1 className="mt-2 font-heading text-3xl uppercase tracking-[0.05em] text-white/30">
+                Nothing is playing
+              </h1>
+            )}
+          </div>
 
+          {/* Queue */}
+          <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border border-white/10 bg-[#0d0d0d]">
+            <div className="flex items-center justify-between border-b border-[#c4202f]/45 px-4 py-3">
+              <h2 className="font-heading text-2xl uppercase tracking-[0.08em] text-white">
+                Queue
+              </h2>
+              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-white/35">
+                Up Next
+              </span>
+            </div>
+
+            <div
+              className={`min-h-0 overflow-hidden transition-all duration-400 ${queueAnimationClass}`}
+            >
+              {upcoming.length > 0 ? (
+                upcoming.map((track, index) => (
+                  <QueueItem
+                    key={`${track.spotifyTrackId}-${index}`}
+                    track={track}
+                    index={index}
+                  />
+                ))
+              ) : (
+                <div className="flex h-full items-center justify-center px-6 text-center">
+                  <div>
+                    <p className="font-heading text-3xl uppercase tracking-[0.08em] text-white/30">
+                      Queue Empty
+                    </p>
+                    <p className="mt-2 text-xs text-white/30">
+                      Upcoming songs will appear here.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* RIGHT COLUMN */}
+        <section className="grid min-h-0 grid-rows-[39%_minmax(0,1fr)] gap-3">
+          {/* Photo and QR */}
+          <div className="grid min-h-0 grid-cols-[52%_48%] gap-3">
+            <PlaceholderPanel label="Coming Soon" large />
+
+            <aside className="flex min-h-0 items-center justify-center border border-[#c4202f]/45 bg-[#0d0d0d] p-4">
+              <div className="flex h-full w-full flex-col items-center justify-center">
+                <p className="font-heading text-2xl uppercase tracking-[0.1em] text-white">
+                  Request a Song
+                </p>
+
+                <div className="mt-3 aspect-square min-h-0 max-h-[72%] w-auto bg-white p-2">
+                  <img
+                    src="/REQUEST_A_SONG.png"
+                    alt="QR code to request a song"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+
+                <p className="mt-3 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
+                  Scan with your phone
+                </p>
+              </div>
+            </aside>
+          </div>
+
+          {/* Video */}
+          <div className="relative flex min-h-0 items-center justify-center overflow-hidden border border-[#c4202f]/45 bg-black">
+            <video
+              className="h-full w-full bg-black object-contain"
+              src="/DANCE_LOOP.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+            />
+
+            <div className="pointer-events-none absolute left-4 top-4 border border-white/15 bg-black/70 px-3 py-1.5">
+              <p className="font-heading text-lg uppercase tracking-[0.08em] text-white/70">
+                Video
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {loading ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
+          <p className="font-heading text-4xl uppercase tracking-[0.1em] text-white/50">
+            Loading Playback
+          </p>
+        </div>
+      ) : null}
+
+      {!loading && error ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-6">
+          <div className="w-full max-w-lg border border-[#c4202f] bg-[#130608] p-8 text-center">
+            <p className="font-heading text-4xl uppercase tracking-[0.08em]">
+              Playback Unavailable
+            </p>
+            <p className="mt-3 text-sm text-white/55">{error}</p>
             <button
               type="button"
-              onClick={loadPlayback}
-              className="mt-5 min-h-12 rounded-xl bg-[#c4202f] px-5 py-3 font-black text-white"
+              onClick={() => void loadPlayback()}
+              className="font-heading mt-6 border border-[#c4202f] bg-[#c4202f] px-6 py-3 text-xl uppercase tracking-[0.08em] text-white"
             >
               Try Again
             </button>
           </div>
-        )}
-
-        {!loading && !error && playback && (
-          <div
-            className="grid min-h-0"
-            style={{
-              gridTemplateRows: `minmax(0, 1fr) ${queueHeight}`,
-              gap: pageGap,
-            }}
-          >
-            <section
-              className="grid min-h-0"
-              style={{
-                gridTemplateColumns: contentColumns,
-                gap: pageGap,
-              }}
-            >
-              <div
-                className={`grid min-h-0 overflow-hidden rounded-3xl border border-[#c4202f]/60 bg-[#101010] shadow-2xl transition-all duration-500 ease-in-out ${
-                  nowPlayingTransitioning
-                    ? "-translate-x-8 opacity-0"
-                    : "translate-x-0 opacity-100"
-                } ${
-                  displaySettings.showVideo
-                    ? ""
-                    : "mx-auto w-full max-w-[760px]"
-                }`}
-                style={{
-                  gridTemplateRows: `${artworkSize} minmax(0, 1fr)`,
-                }}
-              >
-                {playback.nowPlaying ? (
-                  <>
-                    <div
-                      className="relative max-w-full overflow-hidden bg-black"
-                      style={{
-                        width: displaySettings.showVideo ? artworkSize : "100%",
-                        height: artworkSize,
-                        justifySelf: displaySettings.showVideo
-                          ? "start"
-                          : "center",
-                        aspectRatio: "1 / 1",
-                      }}
-                    >
-                      <AlbumArtwork
-                        track={playback.nowPlaying}
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-
-                      <div
-                        className={`absolute ${
-                          scale === "small"
-                            ? "bottom-2 left-2"
-                            : "bottom-4 left-4"
-                        }`}
-                      >
-                        <span
-                          className={`inline-flex items-center gap-2 rounded-full bg-[#c4202f] font-black uppercase tracking-wider text-white shadow-lg ${
-                            scale === "small"
-                              ? "px-3 py-1.5 text-[9px]"
-                              : "px-4 py-2 text-xs"
-                          }`}
-                        >
-                          <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
-                          Playing Now
-                        </span>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`min-h-0 overflow-hidden border-t border-[#c4202f]/35 bg-[#111111] ${
-                        scale === "small" ? "p-3" : "p-4"
-                      }`}
-                    >
-                      <CategoryBadge
-                        requestType={playback.nowPlaying.requestType}
-                        compact={scale === "small"}
-                      />
-
-                      <h2
-                        className={`mt-2 line-clamp-2 font-black leading-tight text-white ${
-                          scale === "small"
-                            ? "text-xl"
-                            : scale === "large"
-                              ? "text-3xl"
-                              : "text-2xl"
-                        }`}
-                      >
-                        {playback.nowPlaying.trackName}
-                      </h2>
-
-                      <p
-                        className={`mt-1 truncate text-white/65 ${
-                          scale === "small" ? "text-sm" : "text-lg"
-                        }`}
-                      >
-                        {playback.nowPlaying.artistName}
-                      </p>
-
-                      {playback.nowPlaying.albumName && (
-                        <p
-                          className={`mt-1 truncate text-white/35 ${
-                            scale === "small" ? "text-[10px]" : "text-sm"
-                          }`}
-                        >
-                          Album: {playback.nowPlaying.albumName}
-                        </p>
-                      )}
-
-                      {playback.nowPlaying.lineDance ? (
-                        <div
-                          className={`border-t border-white/10 ${
-                            scale === "small" ? "mt-2 pt-2" : "mt-3 pt-3"
-                          }`}
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <ChoreographyBadge
-                              name={playback.nowPlaying.lineDance.name}
-                              compact={scale === "small"}
-                            />
-
-                            <SongVersionBadge
-                              isOriginalSong={
-                                playback.nowPlaying.lineDance.isOriginalSong
-                              }
-                              compact={scale === "small"}
-                            />
-                          </div>
-
-                          {playback.nowPlaying.lineDance.alsoKnownAs ? (
-                            <p className="mt-1 truncate text-[10px] text-white/50">
-                              Also known as:{" "}
-                              {playback.nowPlaying.lineDance.alsoKnownAs}
-                            </p>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  </>
-                ) : (
-                  <div className="row-span-2 flex flex-col items-center justify-center text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[#c4202f]/50 bg-[#1a1a1a] text-3xl text-white/30">
-                      ♪
-                    </div>
-
-                    <h2 className="mt-4 text-2xl font-black">
-                      Nothing is playing
-                    </h2>
-                  </div>
-                )}
-              </div>
-
-              {displaySettings.showVideo && (
-                <div className="relative flex min-h-0 items-center justify-center overflow-hidden rounded-3xl border border-[#c4202f]/45 bg-black">
-                  <video
-                    className="h-full w-full bg-black object-contain"
-                    src="/DANCE_LOOP.mp4"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="auto"
-                  />
-
-                  <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/5" />
-                </div>
-              )}
-            </section>
-
-            <section
-              className="grid min-h-0 overflow-hidden"
-              style={{
-                gridTemplateColumns: displaySettings.showQrCode
-                  ? "minmax(0, 1fr) clamp(92px, 11vw, 140px)"
-                  : "minmax(0, 1fr)",
-                gap: pageGap,
-              }}
-            >
-              <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-2">
-                <div className="flex items-center justify-between px-1">
-                  <h2
-                    className={`font-black uppercase tracking-[0.15em] text-white ${
-                      scale === "small" ? "text-sm" : "text-lg"
-                    }`}
-                  >
-                    Up Next
-                  </h2>
-
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/40">
-                    Next {displaySettings.queueCount}{" "}
-                    {displaySettings.queueCount === 1 ? "song" : "songs"}
-                  </p>
-                </div>
-
-                <div
-                  className={`grid min-h-0 ${queueColumnClass} gap-2 transition-all duration-500 ease-in-out ${queueAnimationClass}`}
-                >
-                  {playback.upcoming
-                    .slice(0, displaySettings.queueCount)
-                    .map((track, index) => (
-                      <QueueTrack
-                        key={`${track.spotifyTrackId}-${index}`}
-                        track={track}
-                        index={index}
-                        scale={scale}
-                      />
-                    ))}
-
-                  {playback.upcoming.length === 0 && (
-                    <div
-                      className={`flex items-center justify-center rounded-2xl border border-dashed border-[#c4202f]/45 bg-[#101010] text-center text-white/45 ${
-                        displaySettings.queueCount === 1
-                          ? "col-span-1"
-                          : displaySettings.queueCount === 2
-                            ? "col-span-2"
-                            : "col-span-3"
-                      }`}
-                    >
-                      No upcoming songs are currently queued.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {displaySettings.showQrCode && (
-                <aside className="flex min-h-0 items-center justify-center rounded-2xl border border-[#c4202f]/60 bg-[#111111] p-2 shadow-lg">
-                  <div className="w-full rounded-xl bg-white p-1.5">
-                    <img
-                      src="/REQUEST_A_SONG.png"
-                      alt="QR code to request a song"
-                      className="aspect-square h-auto w-full object-contain"
-                    />
-                  </div>
-                </aside>
-              )}
-            </section>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : null}
     </main>
   );
 }
