@@ -39,7 +39,7 @@ function getDeviceId(): string {
 }
 
 function AlbumArt({ image, name, size = "large" }: { image: string | null; name: string; size?: "small" | "large" }) {
-  const classes = size === "large" ? "h-20 w-20 rounded-2xl" : "h-16 w-16 rounded-xl";
+  const classes = size === "large" ? "h-20 w-20 rounded-xl" : "h-[72px] w-[72px] rounded-lg sm:h-[88px] sm:w-[88px]";
 
   return image ? (
     <img src={image} alt={`${name} album artwork`} className={`${classes} shrink-0 object-cover`} />
@@ -217,51 +217,120 @@ export default function MusicRequestPage() {
     }
   }
 
-  function RequestList({ title, requests, emptyMessage }: { title: string; requests: SongRequest[]; emptyMessage: string }) {
+  function CategoryIcon({ type }: { type: RequestType }) {
+    if (type === "swing") {
+      return (
+        <svg
+          viewBox="0 0 48 48"
+          aria-hidden="true"
+          className="h-9 w-9 shrink-0 text-[#c4202f]"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M18 35V11l20-5v24" />
+          <ellipse cx="12" cy="36" rx="7" ry="5" />
+          <ellipse cx="32" cy="31" rx="7" ry="5" />
+        </svg>
+      );
+    }
+
     return (
-      <section className="rounded-3xl border border-white/10 bg-[#0d0d0d]/95 p-4 shadow-2xl sm:p-5">
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#ff7b86]">Live ranking</p>
-            <h2 className="mt-1 text-2xl font-black">{title}</h2>
-          </div>
-          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/60">{requests.length}</span>
+      <svg
+        viewBox="0 0 48 48"
+        aria-hidden="true"
+        className="h-10 w-10 shrink-0 text-[#c4202f]"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M18 5h10l2 15 8 8v9H15c-4 0-7-3-7-7v-3h10V5Z" />
+        <path d="M18 27h12" />
+        <path d="M19 11h10M20 16h10" />
+        <path d="M15 37v5h25v-5" />
+      </svg>
+    );
+  }
+
+  function RequestList({
+    title,
+    requests,
+    emptyMessage,
+    type,
+  }: {
+    title: string;
+    requests: SongRequest[];
+    emptyMessage: string;
+    type: RequestType;
+  }) {
+    return (
+      <section className="min-w-0">
+        <div className="flex items-center gap-3 border-b-2 border-[#c4202f] pb-4">
+          <CategoryIcon type={type} />
+          <h2 className="text-xl font-black uppercase tracking-[0.035em] text-white sm:text-2xl">
+            {title}
+          </h2>
         </div>
 
-        <div className="space-y-3">
-          {requests.map((songRequest) => (
-            <article key={songRequest.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#151515] p-3">
-              <AlbumArt image={songRequest.album_image} name={songRequest.track_name} size="small" />
+        <div>
+          {requests.map((songRequest) => {
+            const hasVoted = votedRequestIds.has(songRequest.id);
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-black">{songRequest.track_name}</p>
-                <p className="truncate text-sm text-white/55">{songRequest.artist_name}</p>
-              </div>
+            return (
+              <article
+                key={songRequest.id}
+                className="grid grid-cols-[72px_minmax(0,1fr)_72px] items-center gap-4 border-b border-white/15 py-5 last:border-b-0 sm:grid-cols-[88px_minmax(0,1fr)_92px] sm:gap-5"
+              >
+                <AlbumArt
+                  image={songRequest.album_image}
+                  name={songRequest.track_name}
+                  size="small"
+                />
 
-              <div className="flex shrink-0 flex-col items-center gap-1.5">
-                <span className="text-lg font-black">{songRequest.votes}</span>
-                <button
-                  type="button"
-                  onClick={() => voteForSong(songRequest)}
-                  disabled={votingRequestId !== null || votedRequestIds.has(songRequest.id)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-black transition disabled:cursor-default ${
-                    votedRequestIds.has(songRequest.id)
-                      ? "bg-[#c4202f] text-white"
-                      : "bg-white text-black hover:bg-white/85 disabled:opacity-40"
-                  }`}
-                >
-                  {votingRequestId === songRequest.id
-                    ? "Voting…"
-                    : votedRequestIds.has(songRequest.id)
-                      ? "Voted"
-                      : "Vote"}
-                </button>
-              </div>
-            </article>
-          ))}
+                <div className="min-w-0">
+                  <p className="truncate text-base font-black text-white sm:text-lg">
+                    {songRequest.track_name}
+                  </p>
+                  <p className="mt-1 truncate text-base text-white/55 sm:text-lg">
+                    {songRequest.artist_name}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 flex-col items-center">
+                  <span className="text-xl font-black leading-none text-white">
+                    {songRequest.votes}
+                  </span>
+                  <span className="mt-1 text-[11px] font-bold uppercase tracking-wide text-white/45">
+                    Votes
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => voteForSong(songRequest)}
+                    disabled={votingRequestId !== null || hasVoted}
+                    className={`mt-3 min-w-[72px] rounded-lg border-2 px-3 py-2 text-sm font-black uppercase transition sm:min-w-[86px] sm:text-base ${
+                      hasVoted
+                        ? "border-[#c4202f] bg-[#c4202f] text-white"
+                        : "border-[#c4202f] bg-transparent text-white hover:bg-[#c4202f]"
+                    } disabled:cursor-default`}
+                  >
+                    {votingRequestId === songRequest.id
+                      ? "Voting…"
+                      : hasVoted
+                        ? "Voted"
+                        : "Vote"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
 
           {requests.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-white/15 p-8 text-center text-white/35">{emptyMessage}</div>
+            <div className="py-12 text-center text-white/35">{emptyMessage}</div>
           )}
         </div>
       </section>
@@ -332,9 +401,24 @@ export default function MusicRequestPage() {
           ))}
         </section>
 
-        <div className="mt-8 grid gap-5 lg:grid-cols-2">
-          <RequestList title="Line Dances" requests={lineDanceRequests} emptyMessage="No line dance requests yet." />
-          <RequestList title="Swing Songs" requests={swingRequests} emptyMessage="No swing song requests yet." />
+        <div className="mt-10 border-t border-white/15 pt-7 lg:grid lg:grid-cols-2 lg:gap-0">
+          <div className="pb-8 lg:border-r lg:border-white/20 lg:pb-0 lg:pr-8">
+            <RequestList
+              title="Swing Song Requests"
+              requests={swingRequests}
+              emptyMessage="No swing song requests yet."
+              type="swing"
+            />
+          </div>
+
+          <div className="border-t border-white/15 pt-8 lg:border-t-0 lg:pl-8 lg:pt-0">
+            <RequestList
+              title="Line Dance Requests"
+              requests={lineDanceRequests}
+              emptyMessage="No line dance requests yet."
+              type="line_dance"
+            />
+          </div>
         </div>
       </div>
 
