@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
     error: existingError,
   } = await supabaseAdmin
     .from("requests")
-    .select("id, votes")
+    .select("id, votes, status")
     .eq("event_id", event.id)
     .eq("spotify_track_id", track.id)
     .eq("request_type", requestType)
@@ -181,6 +181,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: existingError.message },
       { status: 500 }
+    );
+  }
+
+  if (existingRequest?.status === "played") {
+    return NextResponse.json(
+      {
+        error:
+          "This song has already been played tonight. Please choose another song.",
+      },
+      { status: 409 }
+    );
+  }
+
+  if (existingRequest?.status === "removed") {
+    return NextResponse.json(
+      {
+        error:
+          "This song was removed from tonight's requests. Please choose another song.",
+      },
+      { status: 409 }
     );
   }
 

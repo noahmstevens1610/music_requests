@@ -922,29 +922,6 @@ export default function AdminPage() {
         <div className="grid gap-8 lg:grid-cols-2">
           <section>
             <h2 className="mb-4 text-2xl font-bold">
-              Swing Songs
-            </h2>
-
-            <div className="space-y-4">
-              {swingRequests.map(
-                (request) => (
-                  <RequestCard
-                    key={request.id}
-                    request={request}
-                  />
-                )
-              )}
-
-              {swingRequests.length === 0 && (
-                <p className="text-neutral-500">
-                  No swing requests.
-                </p>
-              )}
-            </div>
-          </section>
-
-          <section>
-            <h2 className="mb-4 text-2xl font-bold">
               Line Dances
             </h2>
 
@@ -962,6 +939,29 @@ export default function AdminPage() {
                 0 && (
                 <p className="text-neutral-500">
                   No line dance requests.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-4 text-2xl font-bold">
+              Swing Songs
+            </h2>
+
+            <div className="space-y-4">
+              {swingRequests.map(
+                (request) => (
+                  <RequestCard
+                    key={request.id}
+                    request={request}
+                  />
+                )
+              )}
+
+              {swingRequests.length === 0 && (
+                <p className="text-neutral-500">
+                  No swing requests.
                 </p>
               )}
             </div>
