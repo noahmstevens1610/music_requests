@@ -95,27 +95,31 @@ function EmptyArtwork({ className = "" }: { className?: string }) {
 
 function SongTags({ track }: { track: PlaybackTrack }) {
   return (
-    <div className="space-y-2">
+    <div>
       <p className="font-heading text-2xl uppercase tracking-[0.06em] text-[#ff7b86]">
         {categoryLabel(track.requestType)}
       </p>
 
-      <div className="border border-white/10 bg-black/35 px-3 py-2">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
-          Also Known As
-        </p>
-        <p className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-white">
-          {track.lineDance?.alsoKnownAs || "—"}
-        </p>
-      </div>
+      <div className="mt-3 border border-white/10 bg-black/35 px-3 py-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
+            Choreography
+          </p>
+          <p className="font-heading mt-1 line-clamp-2 text-lg uppercase tracking-[0.04em] text-white">
+            {(track.lineDance?.name ?? "Not Applicable").toUpperCase()}
+          </p>
+        </div>
 
-      <div className="border border-white/10 bg-black/35 px-3 py-2">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
-          Choreography
-        </p>
-        <p className="font-heading mt-1 line-clamp-2 text-lg uppercase tracking-[0.04em] text-white">
-          {track.lineDance?.name ?? "Not Applicable"}
-        </p>
+        <div className="my-3 h-px bg-white/10" />
+
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
+            Also Known As
+          </p>
+          <p className="font-heading mt-1 line-clamp-2 text-lg uppercase tracking-[0.04em] text-white">
+            {(track.lineDance?.alsoKnownAs || "—").toUpperCase()}
+          </p>
+        </div>
       </div>
     </div>
   );
