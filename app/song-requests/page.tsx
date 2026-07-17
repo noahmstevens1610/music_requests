@@ -236,7 +236,6 @@ export default function MusicRequestPage() {
     return (
       <section className="min-w-0">
         <div className="border-b-2 border-[#c4202f] pb-4">
-          <CategoryIcon type={type} />
           <h2 className="font-heading text-3xl uppercase tracking-[0.05em] text-white sm:text-4xl">
             {title}
           </h2>
