@@ -22,6 +22,7 @@ type RequestBody = {
 
 export async function GET(request: NextRequest) {
   const eventSlug = request.nextUrl.searchParams.get("event");
+  const deviceId = request.nextUrl.searchParams.get("device")?.trim();
 
   if (!eventSlug) {
     return NextResponse.json(
@@ -72,7 +73,6 @@ export async function GET(request: NextRequest) {
     )
     .eq("event_id", event.id)
     .in("status", ["pending", "approved"])
-    .order("host_priority", { ascending: false })
     .order("votes", { ascending: false })
     .order("created_at", { ascending: true });
 
@@ -93,10 +93,34 @@ export async function GET(request: NextRequest) {
     (songRequest) => songRequest.request_type === "line_dance"
   );
 
+  let votedRequestIds: string[] = [];
+
+  if (deviceId && allRequests.length > 0) {
+    const requestIds = allRequests.map((songRequest) => songRequest.id);
+
+    const { data: deviceVotes, error: votesError } = await supabaseAdmin
+      .from("votes")
+      .select("request_id")
+      .eq("device_id", deviceId)
+      .in("request_id", requestIds);
+
+    if (votesError) {
+      return NextResponse.json(
+        { error: votesError.message },
+        { status: 500 }
+      );
+    }
+
+    votedRequestIds = (deviceVotes ?? []).map(
+      (vote) => vote.request_id
+    );
+  }
+
   return NextResponse.json({
     event,
     swingRequests,
     lineDanceRequests,
+    votedRequestIds,
   });
 }
 

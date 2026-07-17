@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 
 type RequestType = "swing" | "line_dance";
 
@@ -64,17 +63,23 @@ export default function MusicRequestPage() {
   const [modalError, setModalError] = useState("");
   const [voteError, setVoteError] = useState("");
   const [votingRequestId, setVotingRequestId] = useState<string | null>(null);
+  const [votedRequestIds, setVotedRequestIds] = useState<Set<string>>(new Set());
   const [eventName, setEventName] = useState("Big Iron Country Swing");
 
   async function loadRequests() {
     try {
-      const response = await fetch(`/api/requests?event=${encodeURIComponent(slug)}`, { cache: "no-store" });
+      const deviceId = getDeviceId();
+      const response = await fetch(
+        `/api/requests?event=${encodeURIComponent(slug)}&device=${encodeURIComponent(deviceId)}`,
+        { cache: "no-store" }
+      );
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Unable to load requests.");
 
       setEventName(data.event?.name ?? "Big Iron Country Swing");
       setSwingRequests(data.swingRequests ?? []);
       setLineDanceRequests(data.lineDanceRequests ?? []);
+      setVotedRequestIds(new Set(data.votedRequestIds ?? []));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to load requests.");
     }
@@ -158,6 +163,9 @@ export default function MusicRequestPage() {
       if (!response.ok) throw new Error(data.error ?? "Unable to request this song.");
 
       setMessage(data.message ?? "Song requested.");
+      if (data.request?.id) {
+        setVotedRequestIds((current) => new Set(current).add(data.request.id));
+      }
       setSelectedTrack(null);
       setRequestType(null);
       setQuery("");
@@ -171,7 +179,7 @@ export default function MusicRequestPage() {
   }
 
   async function voteForSong(songRequest: SongRequest) {
-    if (votingRequestId) return;
+    if (votingRequestId || votedRequestIds.has(songRequest.id)) return;
 
     setVotingRequestId(songRequest.id);
     setVoteError("");
@@ -200,6 +208,7 @@ export default function MusicRequestPage() {
       if (!response.ok) throw new Error(data.error ?? "Unable to vote.");
 
       setMessage(data.message ?? "Vote added.");
+      setVotedRequestIds((current) => new Set(current).add(songRequest.id));
       await loadRequests();
     } catch (error) {
       setVoteError(error instanceof Error ? error.message : "Unable to vote.");
@@ -220,15 +229,13 @@ export default function MusicRequestPage() {
         </div>
 
         <div className="space-y-3">
-          {requests.map((songRequest, index) => (
+          {requests.map((songRequest) => (
             <article key={songRequest.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#151515] p-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#c4202f] text-xs font-black">{index + 1}</span>
               <AlbumArt image={songRequest.album_image} name={songRequest.track_name} size="small" />
 
               <div className="min-w-0 flex-1">
                 <p className="truncate font-black">{songRequest.track_name}</p>
                 <p className="truncate text-sm text-white/55">{songRequest.artist_name}</p>
-                {songRequest.album_name && <p className="truncate text-xs text-white/30">{songRequest.album_name}</p>}
               </div>
 
               <div className="flex shrink-0 flex-col items-center gap-1.5">
@@ -236,10 +243,18 @@ export default function MusicRequestPage() {
                 <button
                   type="button"
                   onClick={() => voteForSong(songRequest)}
-                  disabled={votingRequestId !== null}
-                  className="rounded-lg bg-white px-3 py-1.5 text-xs font-black text-black transition hover:bg-white/85 disabled:opacity-40"
+                  disabled={votingRequestId !== null || votedRequestIds.has(songRequest.id)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-black transition disabled:cursor-default ${
+                    votedRequestIds.has(songRequest.id)
+                      ? "bg-[#c4202f] text-white"
+                      : "bg-white text-black hover:bg-white/85 disabled:opacity-40"
+                  }`}
                 >
-                  {votingRequestId === songRequest.id ? "Voting…" : "▲ Vote"}
+                  {votingRequestId === songRequest.id
+                    ? "Voting…"
+                    : votedRequestIds.has(songRequest.id)
+                      ? "Voted"
+                      : "Vote"}
                 </button>
               </div>
             </article>
@@ -258,15 +273,12 @@ export default function MusicRequestPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.22),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_32%)]" />
 
       <div className="relative mx-auto max-w-6xl">
-        <header className="rounded-3xl border border-white/10 bg-[#0b0b0b]/95 p-6 shadow-2xl sm:p-8">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#c4202f] text-xl font-black shadow-lg">BI</div>
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#ff7b86]">{eventName}</p>
-              <h1 className="mt-1 text-3xl font-black sm:text-5xl">Request a Song</h1>
-              <p className="mt-2 text-sm text-white/50 sm:text-base">Search Spotify, choose a category, and send it to the DJ.</p>
-            </div>
-          </div>
+        <header className="overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b0b]/95 shadow-2xl">
+          <img
+            src="/song-requests-banner.png"
+            alt={`${eventName} song requests`}
+            className="h-auto w-full object-cover"
+          />
         </header>
 
         <section className="mt-5 rounded-3xl border border-white/10 bg-[#0d0d0d]/95 p-4 shadow-2xl sm:p-6">
@@ -314,7 +326,6 @@ export default function MusicRequestPage() {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-lg font-black">{track.name}</span>
                 <span className="mt-1 block truncate text-sm text-white/55">{track.artist}</span>
-                <span className="mt-1 block truncate text-xs text-white/30">{track.album}</span>
               </span>
               <span className="rounded-xl bg-white px-4 py-2 text-sm font-black text-black">Select</span>
             </button>
@@ -340,7 +351,6 @@ export default function MusicRequestPage() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xl font-black">{selectedTrack.name}</p>
                 <p className="mt-1 truncate text-white/55">{selectedTrack.artist}</p>
-                <p className="mt-1 truncate text-sm text-white/30">{selectedTrack.album}</p>
               </div>
               <button type="button" onClick={closeRequestModal} className="rounded-full px-3 py-1 text-2xl text-white/50 hover:bg-white/10 hover:text-white">×</button>
             </div>
