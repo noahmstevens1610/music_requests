@@ -117,7 +117,7 @@ function SongTags({ track }: { track: PlaybackTrack }) {
             Also Known As
           </p>
           <p className="font-heading mt-1 line-clamp-2 text-lg uppercase tracking-[0.04em] text-white">
-            {(track.lineDance?.alsoKnownAs || "—").toUpperCase()}
+            {(track.lineDance?.alsoKnownAs || "NOT APPLICABLE").toUpperCase()}
           </p>
         </div>
       </div>
@@ -511,7 +511,7 @@ export default function NowPlayingPage() {
                   Request a Song
                 </p>
 
-                <div className="mt-3 aspect-square min-h-0 max-h-[72%] w-auto bg-white p-2">
+                <div className="mt-3 aspect-square min-h-0 max-h-[72%] w-auto">
                   <img
                     src="/REQUEST_A_SONG.png"
                     alt="QR code to request a song"
@@ -519,8 +519,8 @@ export default function NowPlayingPage() {
                   />
                 </div>
 
-                <p className="mt-3 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
-                  Scan with your phone
+                <p className="font-heading mt-3 text-2xl uppercase tracking-[0.1em] text-white">
+                  Submit a Photo
                 </p>
               </div>
             </aside>
