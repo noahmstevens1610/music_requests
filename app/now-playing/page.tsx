@@ -6,6 +6,13 @@ type RequestType = "swing" | "line_dance";
 type QueueAnimation = "idle" | "slide-out" | "slide-in";
 type PageScale = 0.75 | 0.85 | 1 | 1.1;
 type FontSize = 14 | 16 | 18 | 20;
+type BoxVisibility = {
+  nowPlaying: boolean;
+  queue: boolean;
+  photo: boolean;
+  qr: boolean;
+  video: boolean;
+};
 
 type LineDanceInfo = {
   id?: string;
@@ -88,15 +95,10 @@ function EmptyArtwork({ className = "" }: { className?: string }) {
 
 function SongTags({ track }: { track: PlaybackTrack }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <div className="border border-white/10 bg-black/35 px-3 py-2">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
-          Category
-        </p>
-        <p className="font-heading mt-1 truncate text-lg uppercase tracking-[0.04em] text-[#ff7b86]">
-          {categoryLabel(track.requestType)}
-        </p>
-      </div>
+    <div className="space-y-2">
+      <p className="font-heading text-2xl uppercase tracking-[0.06em] text-[#ff7b86]">
+        {categoryLabel(track.requestType)}
+      </p>
 
       <div className="border border-white/10 bg-black/35 px-3 py-2">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
@@ -104,6 +106,15 @@ function SongTags({ track }: { track: PlaybackTrack }) {
         </p>
         <p className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-white">
           {track.lineDance?.alsoKnownAs || "—"}
+        </p>
+      </div>
+
+      <div className="border border-white/10 bg-black/35 px-3 py-2">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
+          Choreography
+        </p>
+        <p className="font-heading mt-1 line-clamp-2 text-lg uppercase tracking-[0.04em] text-white">
+          {track.lineDance?.name ?? "Not Applicable"}
         </p>
       </div>
     </div>
@@ -118,14 +129,14 @@ function QueueItem({
   index: number;
 }) {
   return (
-    <article className="grid grid-cols-[46px_64px_minmax(0,1fr)] items-center gap-3 border-b border-white/10 px-3 py-3 last:border-b-0">
+    <article className="grid grid-cols-[46px_64px_minmax(0,1fr)_auto] items-center gap-3 border-b border-white/10 px-3 py-3 last:border-b-0">
       <div className="font-heading text-center text-2xl text-[#c4202f]">
         {index + 1}
       </div>
 
       <AlbumArtwork
         track={track}
-        className="h-16 w-16 border border-white/10 object-cover"
+        className="aspect-square h-16 w-16 border border-white/10 object-cover"
       />
 
       <div className="min-w-0">
@@ -135,22 +146,23 @@ function QueueItem({
         <p className="mt-1 truncate text-xs text-white/55">
           {track.artistName}
         </p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <span className="border border-[#c4202f]/55 bg-[#c4202f]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#ff9aa3]">
-            {categoryLabel(track.requestType)}
-          </span>
+      </div>
 
-          {track.lineDance ? (
-            <>
-              <span className="max-w-[150px] truncate border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.06em] text-white/75">
-                {track.lineDance.name}
-              </span>
-              <span className="border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.06em] text-white/60">
-                {track.lineDance.isOriginalSong ? "Original" : "Song Swap"}
-              </span>
-            </>
-          ) : null}
-        </div>
+      <div className="flex max-w-[180px] flex-col items-end gap-1.5 text-right">
+        <span className="border border-[#c4202f]/55 bg-[#c4202f]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#ff9aa3]">
+          {categoryLabel(track.requestType)}
+        </span>
+
+        {track.lineDance ? (
+          <>
+            <span className="max-w-[180px] truncate border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.06em] text-white/75">
+              {track.lineDance.name}
+            </span>
+            <span className="border border-white/15 bg-white/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.06em] text-white/60">
+              {track.lineDance.isOriginalSong ? "Original" : "Song Swap"}
+            </span>
+          </>
+        ) : null}
       </div>
     </article>
   );
@@ -200,6 +212,13 @@ export default function NowPlayingPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pageScale, setPageScale] = useState<PageScale>(1);
   const [fontSize, setFontSize] = useState<FontSize>(16);
+  const [boxVisibility, setBoxVisibility] = useState<BoxVisibility>({
+    nowPlaying: true,
+    queue: true,
+    photo: true,
+    qr: true,
+    video: true,
+  });
 
   const playbackRef = useRef<PlaybackResponse | null>(null);
   const transitionTimeoutRef =
@@ -281,6 +300,7 @@ export default function NowPlayingPage() {
   useEffect(() => {
     const savedPageScale = Number(window.localStorage.getItem("now-playing-page-scale"));
     const savedFontSize = Number(window.localStorage.getItem("now-playing-font-size"));
+    const savedBoxes = window.localStorage.getItem("now-playing-boxes");
 
     if ([0.75, 0.85, 1, 1.1].includes(savedPageScale)) {
       setPageScale(savedPageScale as PageScale);
@@ -289,11 +309,23 @@ export default function NowPlayingPage() {
     if ([14, 16, 18, 20].includes(savedFontSize)) {
       setFontSize(savedFontSize as FontSize);
     }
+
+    if (savedBoxes) {
+      try {
+        setBoxVisibility(JSON.parse(savedBoxes) as BoxVisibility);
+      } catch {
+        // Ignore invalid saved settings.
+      }
+    }
   }, []);
 
   useEffect(() => {
     window.localStorage.setItem("now-playing-page-scale", String(pageScale));
   }, [pageScale]);
+
+  useEffect(() => {
+    window.localStorage.setItem("now-playing-boxes", JSON.stringify(boxVisibility));
+  }, [boxVisibility]);
 
   useEffect(() => {
     const originalFontSize = document.documentElement.style.fontSize;
@@ -349,6 +381,7 @@ export default function NowPlayingPage() {
         {/* LEFT COLUMN */}
         <section className="grid min-h-0 grid-rows-[31%_18%_minmax(0,1fr)] gap-3">
           {/* Album art + song tags */}
+          {boxVisibility.nowPlaying ? (
           <div
             className={`grid min-h-0 grid-cols-[50%_50%] overflow-hidden border border-white/10 bg-[#0d0d0d] transition-all duration-400 ${
               nowPlayingTransitioning
@@ -356,36 +389,21 @@ export default function NowPlayingPage() {
                 : "translate-x-0 opacity-100"
             }`}
           >
-            <div className="min-h-0 border-r border-[#c4202f]/45">
+            <div className="flex min-h-0 items-center justify-center border-r border-[#c4202f]/45 bg-black">
               {nowPlaying ? (
                 <AlbumArtwork
                   track={nowPlaying}
-                  className="h-full w-full object-cover"
+                  className="aspect-square max-h-full w-full object-cover"
                 />
               ) : (
-                <EmptyArtwork className="h-full w-full" />
+                <EmptyArtwork className="aspect-square max-h-full w-full" />
               )}
             </div>
 
             <div className="flex min-h-0 flex-col justify-center gap-3 p-3">
               {nowPlaying ? (
                 <>
-                  <SongTags track={nowPlaying} />
-
-                  <div className="border border-white/10 bg-black/35 px-3 py-2">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
-                      Choreography
-                    </p>
-                    <p className="font-heading mt-1 line-clamp-2 text-lg uppercase tracking-[0.04em] text-white">
-                      {nowPlaying.lineDance?.name ?? "Not Applicable"}
-                    </p>
-                  </div>
-
-                  {nowPlaying.lineDance?.alsoKnownAs ? (
-                    <p className="line-clamp-2 text-[10px] leading-relaxed text-white/40">
-                      Also known as: {nowPlaying.lineDance.alsoKnownAs}
-                    </p>
-                  ) : null}
+<SongTags track={nowPlaying} />
                 </>
               ) : (
                 <div className="text-center">
@@ -399,8 +417,10 @@ export default function NowPlayingPage() {
               )}
             </div>
           </div>
+          ) : <div />}
 
           {/* Song information */}
+          {boxVisibility.nowPlaying ? (
           <div
             className={`flex min-h-0 flex-col justify-center overflow-hidden border border-[#c4202f]/45 bg-[#0d0d0d] px-5 transition-all duration-400 ${
               nowPlayingTransitioning
@@ -432,8 +452,10 @@ export default function NowPlayingPage() {
               </h1>
             )}
           </div>
+          ) : <div />}
 
           {/* Queue */}
+          {boxVisibility.queue ? (
           <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border border-white/10 bg-[#0d0d0d]">
             <div className="flex items-center justify-between border-b border-[#c4202f]/45 px-4 py-3">
               <h2 className="font-heading text-2xl uppercase tracking-[0.08em] text-white">
@@ -469,14 +491,16 @@ export default function NowPlayingPage() {
               )}
             </div>
           </div>
+          ) : <div />}
         </section>
 
         {/* RIGHT COLUMN */}
         <section className="grid min-h-0 grid-rows-[39%_minmax(0,1fr)] gap-3">
           {/* Photo and QR */}
           <div className="grid min-h-0 grid-cols-[52%_48%] gap-3">
-            <PlaceholderPanel label="Coming Soon" large />
+            {boxVisibility.photo ? <PlaceholderPanel label="Coming Soon" large /> : <div />}
 
+            {boxVisibility.qr ? (
             <aside className="flex min-h-0 items-center justify-center border border-[#c4202f]/45 bg-[#0d0d0d] p-4">
               <div className="flex h-full w-full flex-col items-center justify-center">
                 <p className="font-heading text-2xl uppercase tracking-[0.1em] text-white">
@@ -496,9 +520,11 @@ export default function NowPlayingPage() {
                 </p>
               </div>
             </aside>
+            ) : <div />}
           </div>
 
           {/* Video */}
+          {boxVisibility.video ? (
           <div className="relative flex min-h-0 items-center justify-center overflow-hidden border border-[#c4202f]/45 bg-black">
             <video
               className="h-full w-full bg-black object-contain"
@@ -511,6 +537,7 @@ export default function NowPlayingPage() {
             />
 
           </div>
+          ) : <div />}
         </section>
         </div>
       </div>
@@ -542,14 +569,14 @@ export default function NowPlayingPage() {
 
           <div className="mt-5">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
-              Page Size
+              Page Zoom
             </p>
             <div className="mt-2 grid grid-cols-4 gap-2">
               {([
-                [0.75, "XS"],
-                [0.85, "S"],
-                [1, "M"],
-                [1.1, "L"],
+                [0.75, "75%"],
+                [0.85, "85%"],
+                [1, "100%"],
+                [1.1, "110%"],
               ] as const).map(([value, label]) => (
                 <button
                   key={value}
@@ -589,11 +616,57 @@ export default function NowPlayingPage() {
             </div>
           </div>
 
+          <div className="mt-5">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+              Show / Hide Boxes
+            </p>
+
+            <div className="mt-2 grid gap-2">
+              {([
+                ["nowPlaying", "Now Playing"],
+                ["queue", "Queue"],
+                ["photo", "Photo"],
+                ["qr", "QR Code"],
+                ["video", "Video"],
+              ] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() =>
+                    setBoxVisibility((current) => ({
+                      ...current,
+                      [key]: !current[key],
+                    }))
+                  }
+                  className="flex min-h-11 items-center justify-between border border-white/15 bg-white/5 px-3 text-left"
+                >
+                  <span className="text-sm font-bold text-white">{label}</span>
+                  <span
+                    className={`px-2 py-1 text-[10px] font-black uppercase ${
+                      boxVisibility[key]
+                        ? "bg-[#c4202f] text-white"
+                        : "bg-white/10 text-white/45"
+                    }`}
+                  >
+                    {boxVisibility[key] ? "Shown" : "Hidden"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={() => {
               setPageScale(1);
               setFontSize(16);
+              setBoxVisibility({
+                nowPlaying: true,
+                queue: true,
+                photo: true,
+                qr: true,
+                video: true,
+              });
             }}
             className="font-heading mt-5 w-full border border-white/15 bg-white/5 px-4 py-3 text-lg uppercase tracking-[0.08em] text-white"
           >
