@@ -338,15 +338,15 @@ export default function MusicRequestPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black px-4 pb-7 pt-0 text-white sm:px-6 sm:pb-10 sm:pt-0">
+    <main className="relative min-h-screen overflow-hidden bg-black px-4 pt-8 pb-7 text-white sm:px-6 sm:pt-10 sm:pb-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.22),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_32%)]" />
 
       <div className="relative mx-auto max-w-6xl">
-        <header className="-mx-4 overflow-hidden sm:-mx-6">
+        <header className="mb-5 overflow-hidden">
           <img
             src="/song-requests-banner.png"
             alt={`${eventName} song requests`}
-            className="block h-auto w-full object-contain"
+            className="block w-full h-auto object-contain"
           />
         </header>
 
