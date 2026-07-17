@@ -36,7 +36,7 @@ export default function LineDancesPage() {
       const data = await response.json();
 
       if (response.status === 401) {
-        router.push("/admin/login");
+        router.push("/admin-login");
         return;
       }
 
@@ -82,7 +82,7 @@ export default function LineDancesPage() {
       const data = await response.json();
 
       if (response.status === 401) {
-        router.push("/admin/login");
+        router.push("/admin-login");
         return;
       }
 
@@ -141,7 +141,7 @@ export default function LineDancesPage() {
       const data = await response.json();
 
       if (response.status === 401) {
-        router.push("/admin/login");
+        router.push("/admin-login");
         return;
       }
 
@@ -172,7 +172,7 @@ export default function LineDancesPage() {
       method: "POST",
     });
 
-    window.location.href = "/admin/login";
+    window.location.href = "/admin-login";
   }
 
   useEffect(() => {
@@ -366,7 +366,7 @@ export default function LineDancesPage() {
                       type="button"
                       onClick={() =>
                         router.push(
-                          `/admin/line-dances/${lineDance.id}`
+                          `/admin-dashboard/line-dances/${lineDance.id}`
                         )
                       }
                       className="rounded-xl bg-blue-600 px-4 py-2 font-semibold hover:bg-blue-500"

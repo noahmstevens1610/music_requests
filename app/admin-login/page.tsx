@@ -42,10 +42,10 @@ function LoginForm() {
       const requestedDestination = searchParams.get("next");
 
       const destination =
-        requestedDestination?.startsWith("/admin/") &&
-        !requestedDestination.startsWith("/admin/login")
+        requestedDestination?.startsWith("/admin-dashboard") &&
+        !requestedDestination.startsWith("/admin-login")
           ? requestedDestination
-          : "/admin/big-iron";
+          : "/admin-dashboard";
 
       router.replace(destination);
       router.refresh();

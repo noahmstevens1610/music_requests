@@ -87,7 +87,7 @@ export default function LineDanceSongsPage() {
   const handleUnauthorized = useCallback(
     (status: number) => {
       if (status === 401) {
-        router.push("/admin/login");
+        router.push("/admin-login");
         return true;
       }
 
@@ -454,8 +454,7 @@ export default function LineDanceSongsPage() {
       }
     );
 
-    window.location.href =
-      "/admin/login";
+    window.location.href = "/admin-login";
   }
 
   const linkedSpotifyIds =
@@ -500,7 +499,7 @@ export default function LineDanceSongsPage() {
             type="button"
             onClick={() =>
               router.push(
-                "/admin/line-dances"
+                "/admin-dashboard/line-dances"
               )
             }
             className="mt-6 rounded-xl border border-neutral-700 px-4 py-2 font-semibold hover:bg-neutral-800"
@@ -526,7 +525,7 @@ export default function LineDanceSongsPage() {
             type="button"
             onClick={() =>
               router.push(
-                "/admin/line-dances"
+                "/admin-dashboard/line-dances"
               )
             }
             className="mb-4 text-sm font-semibold text-neutral-400 hover:text-white"

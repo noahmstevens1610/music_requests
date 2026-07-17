@@ -50,8 +50,7 @@ function AlbumArt({ image, name, size = "large" }: { image: string | null; name:
 }
 
 export default function MusicRequestPage() {
-  const params = useParams<{ slug: string }>();
-  const slug = params.slug;
+  const slug = "big-iron";
 
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SpotifyTrack[]>([]);

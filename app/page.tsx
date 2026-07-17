@@ -73,7 +73,7 @@ export default function HomePage() {
           }}
         >
           <Link
-            href="/request/big-iron"
+            href="/song-requests"
             style={{
               textDecoration: "none",
               background: "#f1c27d",
@@ -88,7 +88,7 @@ export default function HomePage() {
           </Link>
 
           <Link
-            href="/admin/login"
+            href="/admin-login"
             style={{
               textDecoration: "none",
               border: "1px solid rgba(255,255,255,0.28)",

@@ -255,9 +255,7 @@ function getPlaybackSignature(playback: PlaybackResponse): string {
 }
 
 export default function NowPlayingPage() {
-  const params = useParams<{ slug: string }>();
-
-  const slug = params.slug;
+  const slug = "big-iron";
   const eventName = formatSlug(slug);
 
   const [playback, setPlayback] = useState<PlaybackResponse | null>(null);

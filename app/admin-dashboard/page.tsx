@@ -64,8 +64,7 @@ function formatCategory(category: SongCategory) {
 }
 
 export default function AdminPage() {
-  const params = useParams<{ slug: string }>();
-  const slug = params.slug;
+  const slug = "big-iron";
 
   const [requests, setRequests] = useState<RequestItem[]>([]);
   const [metadata, setMetadata] = useState<
@@ -481,8 +480,7 @@ export default function AdminPage() {
       method: "POST",
     });
 
-    window.location.href =
-      "/admin/login";
+    window.location.href = "/admin-login";
   }
 
   useEffect(() => {

@@ -50,42 +50,38 @@ export default function AdminLayout({
     }
   }, [slugFromDashboard]);
 
-  if (pathname === "/admin/login") {
+  if (pathname === "/admin-login") {
     return children;
   }
 
   const navigationItems: NavigationItem[] = [
     {
       label: "Requests Dashboard",
-      href: `/admin/${slug}`,
+      href: "/admin-dashboard",
       matches: (currentPath) =>
-        currentPath === `/admin/${slug}`,
+        currentPath === "/admin-dashboard",
     },
     {
       label: "All Requests",
-      href: `/admin/all-requests?event=${encodeURIComponent(
-        slug
-      )}`,
+      href: `/admin-dashboard/all-requests?event=${encodeURIComponent(slug)}`,
       matches: (currentPath) =>
-        currentPath.startsWith("/admin/all-requests"),
+        currentPath.startsWith("/admin-dashboard/all-requests"),
     },
     {
       label: "Line Dance Manager",
-      href: `/admin/line-dances?event=${encodeURIComponent(
-        slug
-      )}`,
+      href: `/admin-dashboard/line-dances?event=${encodeURIComponent(slug)}`,
       matches: (currentPath) =>
-        currentPath.startsWith("/admin/line-dances"),
+        currentPath.startsWith("/admin-dashboard/line-dances"),
     },
     {
       label: "Now Playing",
-      href: `/now-playing/${slug}`,
+      href: "/now-playing",
       matches: () => false,
       opensNewTab: true,
     },
     {
       label: "Request Site",
-      href: `/request/${slug}`,
+      href: "/song-requests",
       matches: () => false,
       opensNewTab: true,
     },
@@ -96,7 +92,7 @@ export default function AdminLayout({
       <header className="sticky top-0 z-50 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <Link
-            href={`/admin/${slug}`}
+            href="/admin-dashboard"
             className="flex items-center gap-3"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white font-black text-black">
