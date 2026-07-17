@@ -271,7 +271,7 @@ export default function MusicRequestPage() {
       <section className="min-w-0">
         <div className="flex items-center gap-3 border-b-2 border-[#c4202f] pb-4">
           <CategoryIcon type={type} />
-          <h2 className="text-xl font-black uppercase tracking-[0.035em] text-white sm:text-2xl">
+          <h2 className="font-heading text-3xl uppercase tracking-[0.05em] text-white sm:text-4xl">
             {title}
           </h2>
         </div>
@@ -283,7 +283,7 @@ export default function MusicRequestPage() {
             return (
               <article
                 key={songRequest.id}
-                className="grid grid-cols-[72px_minmax(0,1fr)_72px] items-center gap-4 border-b border-white/15 py-5 last:border-b-0 sm:grid-cols-[88px_minmax(0,1fr)_92px] sm:gap-5"
+                className="group grid grid-cols-[72px_minmax(0,1fr)_72px] items-center gap-4 border-b border-white/15 py-5 transition duration-200 last:border-b-0 hover:bg-white/[0.025] sm:grid-cols-[88px_minmax(0,1fr)_92px] sm:gap-5"
               >
                 <AlbumArt
                   image={songRequest.album_image}
@@ -304,7 +304,7 @@ export default function MusicRequestPage() {
                   <span className="text-xl font-black leading-none text-white">
                     {songRequest.votes}
                   </span>
-                  <span className="mt-1 text-[11px] font-bold uppercase tracking-wide text-white/45">
+                  <span className="font-heading mt-1 text-sm uppercase tracking-[0.08em] text-white/45">
                     Votes
                   </span>
 
@@ -312,7 +312,7 @@ export default function MusicRequestPage() {
                     type="button"
                     onClick={() => voteForSong(songRequest)}
                     disabled={votingRequestId !== null || hasVoted}
-                    className={`mt-3 min-w-[72px] rounded-lg border-2 px-3 py-2 text-sm font-black uppercase transition sm:min-w-[86px] sm:text-base ${
+                    className={`font-heading mt-3 min-w-[72px] rounded-md border-2 px-3 py-2 text-lg uppercase tracking-[0.06em] transition duration-200 active:scale-95 sm:min-w-[86px] sm:text-xl ${
                       hasVoted
                         ? "border-[#c4202f] bg-[#c4202f] text-white"
                         : "border-[#c4202f] bg-transparent text-white hover:bg-[#c4202f]"
@@ -342,7 +342,7 @@ export default function MusicRequestPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.22),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_32%)]" />
 
       <div className="relative mx-auto max-w-6xl">
-        <header className="mb-5 overflow-hidden">
+        <header className="mb-6 overflow-hidden border-b-2 border-[#c4202f] shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
           <img
             src="/song-requests-banner.png"
             alt={`${eventName} song requests`}
@@ -350,16 +350,30 @@ export default function MusicRequestPage() {
           />
         </header>
 
-        <section className="mt-5 rounded-3xl border border-white/10 bg-[#0d0d0d]/95 p-4 shadow-2xl sm:p-6">
+        <section className="mt-5 border border-white/10 bg-[#0d0d0d]/95 p-4 shadow-2xl sm:p-6">
           <label className="block">
-            <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-white/55">Search for a song</span>
+            <span className="font-heading mb-2 block text-lg uppercase tracking-[0.12em] text-white/65">Search for a song</span>
             <div className="relative">
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/35"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Song title or artist"
+                placeholder="Search by song title or artist"
                 autoComplete="off"
-                className="w-full rounded-2xl border border-white/15 bg-black px-5 py-4 pr-14 text-lg font-bold outline-none transition placeholder:text-white/25 focus:border-[#c4202f]"
+                className="h-16 w-full rounded-none border border-white/20 bg-black pl-12 pr-14 text-lg font-semibold outline-none transition duration-200 placeholder:text-white/25 focus:border-[#c4202f] focus:shadow-[0_0_0_1px_rgba(196,32,47,0.35)]"
               />
               {query && (
                 <button
@@ -389,14 +403,14 @@ export default function MusicRequestPage() {
               key={track.id}
               type="button"
               onClick={() => openRequestModal(track)}
-              className="flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-[#111111] p-3 text-left shadow-lg transition hover:border-white/25 hover:bg-[#171717]"
+              className="group flex w-full items-center gap-4 rounded-xl border border-white/10 bg-[#111111] p-3 text-left shadow-lg transition duration-200 hover:-translate-y-0.5 hover:border-[#c4202f]/70 hover:bg-[#171717] hover:shadow-xl"
             >
               <AlbumArt image={track.image} name={track.name} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-lg font-black">{track.name}</span>
                 <span className="mt-1 block truncate text-sm text-white/55">{track.artist}</span>
               </span>
-              <span className="rounded-xl bg-white px-4 py-2 text-sm font-black text-black">Select</span>
+              <span className="font-heading rounded-md bg-white px-4 py-2 text-lg uppercase tracking-[0.05em] text-black">Select</span>
             </button>
           ))}
         </section>
@@ -423,12 +437,12 @@ export default function MusicRequestPage() {
       </div>
 
       {selectedTrack && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/85 p-4 backdrop-blur-sm sm:items-center" onClick={closeRequestModal}>
+        <div className="fixed inset-0 z-50 flex animate-[fadeIn_180ms_ease-out] items-end justify-center bg-black/85 p-4 backdrop-blur-sm sm:items-center" onClick={closeRequestModal}>
           <div
             role="dialog"
             aria-modal="true"
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-lg rounded-3xl border border-white/15 bg-[#111111] p-5 shadow-2xl sm:p-6"
+            className="w-full max-w-lg animate-[scaleIn_180ms_ease-out] rounded-2xl border border-white/15 bg-[#111111] p-5 shadow-2xl sm:p-6"
           >
             <div className="flex items-start gap-4">
               <AlbumArt image={selectedTrack.image} name={selectedTrack.name} />
@@ -440,14 +454,14 @@ export default function MusicRequestPage() {
             </div>
 
             <div className="mt-6">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-white/55">What kind of request is this?</p>
+              <p className="font-heading text-lg uppercase tracking-[0.1em] text-white/60">What kind of request is this?</p>
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setRequestType("line_dance")}
                   className={`rounded-2xl border p-4 text-left transition ${requestType === "line_dance" ? "border-[#c4202f] bg-[#c4202f]/20" : "border-white/15 bg-black hover:border-white/30"}`}
                 >
-                  <span className="block font-black">Line Dance</span>
+                  <span className="font-heading block text-xl uppercase tracking-[0.04em]">Line Dance</span>
                   <span className="mt-1 block text-xs text-white/45">A choreographed line dance</span>
                 </button>
                 <button
@@ -455,7 +469,7 @@ export default function MusicRequestPage() {
                   onClick={() => setRequestType("swing")}
                   className={`rounded-2xl border p-4 text-left transition ${requestType === "swing" ? "border-white bg-white/10" : "border-white/15 bg-black hover:border-white/30"}`}
                 >
-                  <span className="block font-black">Swing Song</span>
+                  <span className="font-heading block text-xl uppercase tracking-[0.04em]">Swing Song</span>
                   <span className="mt-1 block text-xs text-white/45">A song for country swing</span>
                 </button>
               </div>
@@ -467,7 +481,7 @@ export default function MusicRequestPage() {
               type="button"
               onClick={submitSong}
               disabled={!requestType || submitting}
-              className="mt-5 w-full rounded-2xl bg-[#c4202f] px-5 py-4 text-lg font-black text-white transition hover:bg-[#d9293a] disabled:cursor-not-allowed disabled:opacity-40"
+              className="font-heading mt-5 w-full rounded-md bg-[#c4202f] px-5 py-4 text-2xl uppercase tracking-[0.05em] text-white transition hover:bg-[#d9293a] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {submitting ? "Sending Request…" : requestType ? `Request as ${requestType === "line_dance" ? "Line Dance" : "Swing Song"}` : "Choose a Category"}
             </button>
