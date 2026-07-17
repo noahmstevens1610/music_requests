@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 type RequestType = "swing" | "line_dance";
 type QueueAnimation = "idle" | "slide-out" | "slide-in";
+type PageScale = 0.75 | 0.85 | 1 | 1.1;
+type FontSize = 14 | 16 | 18 | 20;
 
 type LineDanceInfo = {
   id?: string;
@@ -98,14 +100,10 @@ function SongTags({ track }: { track: PlaybackTrack }) {
 
       <div className="border border-white/10 bg-black/35 px-3 py-2">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
-          Version
+          Also Known As
         </p>
-        <p className="font-heading mt-1 truncate text-lg uppercase tracking-[0.04em] text-white">
-          {track.lineDance
-            ? track.lineDance.isOriginalSong
-              ? "Original"
-              : "Song Swap"
-            : "—"}
+        <p className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-white">
+          {track.lineDance?.alsoKnownAs || "—"}
         </p>
       </div>
     </div>
@@ -199,6 +197,9 @@ export default function NowPlayingPage() {
     useState<QueueAnimation>("idle");
   const [nowPlayingTransitioning, setNowPlayingTransitioning] =
     useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [pageScale, setPageScale] = useState<PageScale>(1);
+  const [fontSize, setFontSize] = useState<FontSize>(16);
 
   const playbackRef = useRef<PlaybackResponse | null>(null);
   const transitionTimeoutRef =
@@ -278,6 +279,33 @@ export default function NowPlayingPage() {
   }
 
   useEffect(() => {
+    const savedPageScale = Number(window.localStorage.getItem("now-playing-page-scale"));
+    const savedFontSize = Number(window.localStorage.getItem("now-playing-font-size"));
+
+    if ([0.75, 0.85, 1, 1.1].includes(savedPageScale)) {
+      setPageScale(savedPageScale as PageScale);
+    }
+
+    if ([14, 16, 18, 20].includes(savedFontSize)) {
+      setFontSize(savedFontSize as FontSize);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("now-playing-page-scale", String(pageScale));
+  }, [pageScale]);
+
+  useEffect(() => {
+    const originalFontSize = document.documentElement.style.fontSize;
+    document.documentElement.style.fontSize = `${fontSize}px`;
+    window.localStorage.setItem("now-playing-font-size", String(fontSize));
+
+    return () => {
+      document.documentElement.style.fontSize = originalFontSize;
+    };
+  }, [fontSize]);
+
+  useEffect(() => {
     void loadPlayback();
 
     const interval = window.setInterval(() => {
@@ -308,8 +336,16 @@ export default function NowPlayingPage() {
   const upcoming = playback?.upcoming.slice(0, 4) ?? [];
 
   return (
-    <main className="h-[100dvh] overflow-hidden bg-black p-3 text-white sm:p-4">
-      <div className="grid h-full min-h-0 grid-cols-[36%_64%] gap-3">
+    <main className="relative h-[100dvh] overflow-hidden bg-black text-white">
+      <div
+        className="origin-top-left p-3 sm:p-4"
+        style={{
+          width: `${100 / pageScale}%`,
+          height: `${100 / pageScale}%`,
+          transform: `scale(${pageScale})`,
+        }}
+      >
+        <div className="grid h-full min-h-0 grid-cols-[36%_64%] gap-3">
         {/* LEFT COLUMN */}
         <section className="grid min-h-0 grid-rows-[31%_18%_minmax(0,1fr)] gap-3">
           {/* Album art + song tags */}
@@ -474,14 +510,97 @@ export default function NowPlayingPage() {
               preload="auto"
             />
 
-            <div className="pointer-events-none absolute left-4 top-4 border border-white/15 bg-black/70 px-3 py-1.5">
-              <p className="font-heading text-lg uppercase tracking-[0.08em] text-white/70">
-                Video
-              </p>
-            </div>
           </div>
         </section>
+        </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setSettingsOpen((current) => !current)}
+        className="fixed right-4 top-4 z-40 flex h-11 w-11 items-center justify-center border border-white/20 bg-black/80 text-xl text-white shadow-xl backdrop-blur"
+        aria-label="Display settings"
+      >
+        ⚙
+      </button>
+
+      {settingsOpen ? (
+        <aside className="fixed right-4 top-16 z-40 w-72 border border-[#c4202f]/55 bg-[#0d0d0d]/95 p-4 shadow-2xl backdrop-blur">
+          <div className="flex items-center justify-between">
+            <h2 className="font-heading text-2xl uppercase tracking-[0.08em]">
+              Display Settings
+            </h2>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(false)}
+              className="flex h-8 w-8 items-center justify-center border border-white/15 bg-white/5 text-lg"
+              aria-label="Close settings"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="mt-5">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+              Page Size
+            </p>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {([
+                [0.75, "XS"],
+                [0.85, "S"],
+                [1, "M"],
+                [1.1, "L"],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPageScale(value)}
+                  className={`min-h-10 border text-sm font-black ${
+                    pageScale === value
+                      ? "border-[#c4202f] bg-[#c4202f] text-white"
+                      : "border-white/15 bg-white/5 text-white/65"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+              Font Size
+            </p>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {([14, 16, 18, 20] as FontSize[]).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setFontSize(value)}
+                  className={`min-h-10 border text-sm font-black ${
+                    fontSize === value
+                      ? "border-[#c4202f] bg-[#c4202f] text-white"
+                      : "border-white/15 bg-white/5 text-white/65"
+                  }`}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setPageScale(1);
+              setFontSize(16);
+            }}
+            className="font-heading mt-5 w-full border border-white/15 bg-white/5 px-4 py-3 text-lg uppercase tracking-[0.08em] text-white"
+          >
+            Reset Display
+          </button>
+        </aside>
+      ) : null}
 
       {loading ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
