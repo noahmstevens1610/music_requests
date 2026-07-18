@@ -9,9 +9,7 @@ function getOrCreateDeviceId() {
   const storageKey = "big-iron-photo-device-id";
   const existing = window.localStorage.getItem(storageKey);
 
-  if (existing) {
-    return existing;
-  }
+  if (existing) return existing;
 
   const created =
     window.crypto?.randomUUID?.() ??
@@ -45,9 +43,7 @@ export default function SubmitPhotoPage() {
     return () => URL.revokeObjectURL(objectUrl);
   }, [photo]);
 
-  function handlePhotoChange(
-    event: ChangeEvent<HTMLInputElement>
-  ) {
+  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     setError("");
     setSuccess("");
 
@@ -73,9 +69,7 @@ export default function SubmitPhotoPage() {
     setPhoto(selected);
   }
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!photo) {
@@ -101,9 +95,7 @@ export default function SubmitPhotoPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ?? "Unable to upload the photo."
-        );
+        throw new Error(data.error ?? "Unable to upload the photo.");
       }
 
       setSuccess(
@@ -123,77 +115,93 @@ export default function SubmitPhotoPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black px-4 py-8 text-white">
-      <div className="mx-auto w-full max-w-xl">
-        <div className="mb-8">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#ff7b86]">
-            Big Iron Country Swing
-          </p>
+    <main className="relative min-h-screen overflow-hidden bg-black px-4 pb-10 pt-0 text-white sm:px-6">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.22),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_32%)]" />
 
-          <h1 className="mt-2 text-5xl font-black uppercase tracking-wide">
-            Submit a Photo
-          </h1>
+      <div className="relative mx-auto max-w-6xl">
+        <header className="-mx-4 overflow-hidden sm:-mx-6">
+          <img
+            src="/song-requests-banner.png"
+            alt="Big Iron Country Swing photo submissions"
+            className="block h-auto w-full object-contain"
+          />
+        </header>
 
-          <p className="mt-3 text-neutral-400">
-            Share a photo from tonight. Every submission is
-            reviewed before it appears on the projector.
-          </p>
-        </div>
+        <section className="mt-5 rounded-3xl border border-white/10 bg-[#0d0d0d]/95 p-4 shadow-2xl sm:p-6">
+          <div className="border-b-2 border-[#c4202f] pb-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-white/55">
+              Big Iron Country Swing
+            </p>
+            <h1 className="mt-2 text-3xl font-black uppercase tracking-[0.035em] text-white sm:text-4xl">
+              Submit a Photo
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55 sm:text-base">
+              Share a photo from tonight. Every photo is reviewed before it appears on the projector.
+            </p>
+          </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-3xl border border-white/10 bg-[#0d0d0d] p-5 shadow-2xl sm:p-7"
-        >
-          <label className="block">
-            <span className="mb-3 block text-sm font-bold uppercase tracking-[0.15em] text-neutral-300">
-              Choose Photo
-            </span>
+          <form onSubmit={handleSubmit} className="mt-6">
+            <label className="block">
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-white/55">
+                Choose a photo
+              </span>
 
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-              capture="environment"
-              onChange={handlePhotoChange}
-              className="block w-full cursor-pointer rounded-2xl border border-neutral-700 bg-black p-3 text-sm text-neutral-300 file:mr-4 file:rounded-xl file:border-0 file:bg-[#c4202f] file:px-4 file:py-3 file:font-bold file:text-white hover:file:bg-[#d9293a]"
-            />
-          </label>
+              <div className="rounded-2xl border border-white/15 bg-black p-3 transition focus-within:border-[#c4202f]">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                  capture="environment"
+                  onChange={handlePhotoChange}
+                  className="block w-full cursor-pointer text-sm font-bold text-white/60 file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-white file:px-4 file:py-3 file:text-sm file:font-black file:text-black hover:file:bg-white/90"
+                />
+              </div>
+            </label>
 
-          {previewUrl && (
-            <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-black">
-              <img
-                src={previewUrl}
-                alt="Selected photo preview"
-                className="max-h-[55vh] w-full object-contain"
-              />
-            </div>
-          )}
+            {previewUrl ? (
+              <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-[#111111] p-3 shadow-lg">
+                <img
+                  src={previewUrl}
+                  alt="Selected photo preview"
+                  className="max-h-[58vh] w-full rounded-xl object-contain"
+                />
+              </div>
+            ) : (
+              <div className="mt-5 flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-white/15 bg-black/45 px-6 text-center">
+                <div>
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-3xl text-white/30">
+                    +
+                  </div>
+                  <p className="mt-4 font-black text-white/70">
+                    Your photo preview will appear here
+                  </p>
+                  <p className="mt-1 text-sm text-white/35">
+                    JPG, PNG, WebP, HEIC, or HEIF. Maximum 10 MB.
+                  </p>
+                </div>
+              </div>
+            )}
 
-          <p className="mt-3 text-xs text-neutral-500">
-            JPG, PNG, WebP, HEIC, or HEIF. Maximum 10 MB.
-          </p>
+            {error && (
+              <p className="mt-4 rounded-xl border border-red-500/40 bg-red-950/50 p-3 text-sm font-semibold text-red-200">
+                {error}
+              </p>
+            )}
 
-          {error && (
-            <div className="mt-5 rounded-2xl border border-red-500/40 bg-red-950/40 p-4 text-red-200">
-              {error}
-            </div>
-          )}
+            {success && (
+              <p className="mt-4 rounded-xl border border-[#c4202f]/50 bg-[#c4202f]/15 p-3 text-sm font-semibold text-white">
+                {success}
+              </p>
+            )}
 
-          {success && (
-            <div className="mt-5 rounded-2xl border border-green-500/40 bg-green-950/40 p-4 text-green-200">
-              {success}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={!photo || submitting}
-            className="mt-6 w-full rounded-2xl bg-[#c4202f] px-5 py-4 text-lg font-black uppercase tracking-wide text-white transition hover:bg-[#d9293a] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {submitting
-              ? "Uploading..."
-              : "Submit for Approval"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={!photo || submitting}
+              className="mt-5 w-full rounded-2xl bg-[#c4202f] px-5 py-4 text-lg font-black uppercase tracking-wide text-white transition hover:bg-[#d9293a] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {submitting ? "Uploading…" : "Submit for Approval"}
+            </button>
+          </form>
+        </section>
       </div>
     </main>
   );
