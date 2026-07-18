@@ -204,8 +204,45 @@ export default function AdminPage() {
         );
       }
 
+      const queueTracks: SpotifyQueueTrack[] =
+        data.queue ?? [];
+
       setNowPlaying(data.currentlyPlaying ?? null);
-      setSpotifyQueue(data.queue ?? []);
+      setSpotifyQueue(queueTracks);
+
+      const queueTrackIds = Array.from(
+        new Set(
+          [
+            ...(data.currentlyPlaying
+              ? [data.currentlyPlaying.id]
+              : []),
+            ...queueTracks.map((track) => track.id),
+          ].filter(Boolean)
+        )
+      );
+
+      const missingQueueTrackIds =
+        queueTrackIds.filter(
+          (trackId) =>
+            !loadedMetadataIds.current.has(trackId)
+        );
+
+      missingQueueTrackIds.forEach((trackId) => {
+        loadedMetadataIds.current.add(trackId);
+      });
+
+      await Promise.all(
+        missingQueueTrackIds.map(async (trackId) => {
+          try {
+            await loadSongMetadata(trackId);
+          } catch (error) {
+            console.error(
+              `Unable to load queue metadata for ${trackId}:`,
+              error
+            );
+          }
+        })
+      );
     } catch (error) {
       console.error("Unable to load Spotify queue:", error);
     } finally {
@@ -312,25 +349,42 @@ export default function AdminPage() {
     }
   }
 
-  async function updateRequestType(
-    requestId: string,
-    requestType: "swing" | "line_dance"
+  async function updateQueuedTrackCategory(
+    track: SpotifyQueueTrack,
+    category: "swing_song" | "line_dance"
   ) {
     try {
       setError("");
       setMessage("");
-      setChangingCategoryId(requestId);
+      setChangingCategoryId(track.id);
+
+      const existingMetadata =
+        metadata[track.id] ?? null;
 
       const response = await fetch(
-        "/api/admin/request",
+        "/api/admin/song-metadata",
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            requestId,
-            requestType,
+            spotifyTrackId: track.id,
+            trackName: track.name,
+            artistName: track.artist,
+            spotifyUri: track.uri,
+            albumName: track.album,
+            albumImage: track.image,
+            category,
+            choreography:
+              existingMetadata?.choreography ?? "",
+            alsoKnownAs:
+              existingMetadata?.also_known_as ?? "",
+            isSongSwap:
+              existingMetadata?.is_song_swap ?? false,
+            originalSpotifyTrackId:
+              existingMetadata?.original_spotify_track_id ??
+              null,
           }),
         }
       );
@@ -340,31 +394,30 @@ export default function AdminPage() {
       if (!response.ok) {
         throw new Error(
           data.error ??
-            "Unable to change the song category."
+            "Unable to change the queued song category."
         );
       }
 
-      setRequests((currentRequests) =>
-        currentRequests.map((request) =>
-          request.id === requestId
-            ? {
-                ...request,
-                request_type: requestType,
-              }
-            : request
-        )
-      );
+      const savedMetadata =
+        data.songMetadata as SongMetadata;
+
+      setMetadata((current) => ({
+        ...current,
+        [track.id]: savedMetadata,
+      }));
+
+      loadedMetadataIds.current.add(track.id);
 
       setMessage(
-        requestType === "line_dance"
-          ? "Song changed to Line Dance."
-          : "Song changed to Swing Song."
+        category === "line_dance"
+          ? "Queued song changed to Line Dance."
+          : "Queued song changed to Swing Song."
       );
     } catch (error) {
       setError(
         error instanceof Error
           ? error.message
-          : "Unable to change the song category."
+          : "Unable to change the queued song category."
       );
     } finally {
       setChangingCategoryId(null);
@@ -658,9 +711,6 @@ export default function AdminPage() {
     const songMetadata =
       metadata[request.spotify_track_id];
 
-    const isChangingCategory =
-      changingCategoryId === request.id;
-
     return (
       <div className="rounded-xl border border-neutral-800 p-3">
         <div className="flex flex-col gap-3">
@@ -698,50 +748,6 @@ export default function AdminPage() {
                   ? "vote"
                   : "votes"}
               </p>
-
-              <div className="mt-3">
-                <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-neutral-500">
-                  Song Type
-                </p>
-
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <button
-                    type="button"
-                    disabled={isChangingCategory}
-                    onClick={() =>
-                      updateRequestType(
-                        request.id,
-                        "swing"
-                      )
-                    }
-                    className={`rounded-lg border px-3 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                      request.request_type === "swing"
-                        ? "border-[#c4202f] bg-[#c4202f] text-white"
-                        : "border-neutral-700 bg-neutral-950 text-neutral-300 hover:border-neutral-500"
-                    }`}
-                  >
-                    Swing Song
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isChangingCategory}
-                    onClick={() =>
-                      updateRequestType(
-                        request.id,
-                        "line_dance"
-                      )
-                    }
-                    className={`rounded-lg border px-3 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                      request.request_type === "line_dance"
-                        ? "border-[#c4202f] bg-[#c4202f] text-white"
-                        : "border-neutral-700 bg-neutral-950 text-neutral-300 hover:border-neutral-500"
-                    }`}
-                  >
-                    Line Dance
-                  </button>
-                </div>
-              </div>
 
               {songMetadata && (
                 <div className="mt-3 space-y-1 text-sm">
@@ -1135,17 +1141,11 @@ export default function AdminPage() {
             ) : (
               <div className="space-y-2">
                 {spotifyQueue.map((track, index) => {
-                  const matchingRequest = requests.find(
-                    (request) =>
-                      request.spotify_track_id === track.id &&
-                      request.status !== "played" &&
-                      request.status !== "removed"
-                  );
+                  const trackMetadata =
+                    metadata[track.id] ?? null;
 
                   const isChanging =
-                    matchingRequest
-                      ? changingCategoryId === matchingRequest.id
-                      : false;
+                    changingCategoryId === track.id;
 
                   return (
                     <article
@@ -1175,47 +1175,47 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      {matchingRequest ? (
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            disabled={isChanging}
-                            onClick={() =>
-                              updateRequestType(
-                                matchingRequest.id,
-                                "swing"
-                              )
-                            }
-                            className={`rounded-lg border px-2 py-2 text-xs font-bold transition disabled:opacity-50 ${
-                              matchingRequest.request_type === "swing"
-                                ? "border-[#c4202f] bg-[#c4202f] text-white"
-                                : "border-neutral-700 bg-neutral-950 text-neutral-300"
-                            }`}
-                          >
-                            Swing
-                          </button>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          disabled={isChanging}
+                          onClick={() =>
+                            updateQueuedTrackCategory(
+                              track,
+                              "swing_song"
+                            )
+                          }
+                          className={`rounded-lg border px-2 py-2 text-xs font-bold transition disabled:opacity-50 ${
+                            trackMetadata?.category === "swing_song"
+                              ? "border-[#c4202f] bg-[#c4202f] text-white"
+                              : "border-neutral-700 bg-neutral-950 text-neutral-300"
+                          }`}
+                        >
+                          Swing Song
+                        </button>
 
-                          <button
-                            type="button"
-                            disabled={isChanging}
-                            onClick={() =>
-                              updateRequestType(
-                                matchingRequest.id,
-                                "line_dance"
-                              )
-                            }
-                            className={`rounded-lg border px-2 py-2 text-xs font-bold transition disabled:opacity-50 ${
-                              matchingRequest.request_type === "line_dance"
-                                ? "border-[#c4202f] bg-[#c4202f] text-white"
-                                : "border-neutral-700 bg-neutral-950 text-neutral-300"
-                            }`}
-                          >
-                            Line Dance
-                          </button>
-                        </div>
-                      ) : (
+                        <button
+                          type="button"
+                          disabled={isChanging}
+                          onClick={() =>
+                            updateQueuedTrackCategory(
+                              track,
+                              "line_dance"
+                            )
+                          }
+                          className={`rounded-lg border px-2 py-2 text-xs font-bold transition disabled:opacity-50 ${
+                            trackMetadata?.category === "line_dance"
+                              ? "border-[#c4202f] bg-[#c4202f] text-white"
+                              : "border-neutral-700 bg-neutral-950 text-neutral-300"
+                          }`}
+                        >
+                          Line Dance
+                        </button>
+                      </div>
+
+                      {!trackMetadata && (
                         <p className="mt-2 text-[11px] text-neutral-500">
-                          Not linked to a request
+                          Choose a category for this queued song.
                         </p>
                       )}
                     </article>
