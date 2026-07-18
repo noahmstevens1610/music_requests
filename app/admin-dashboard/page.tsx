@@ -360,7 +360,7 @@ export default function AdminPage() {
       setQueueingId(requestId);
 
       const response = await fetch(
-        "/api/spotify/queue",
+        "/api/spotify/add-to-playlist",
         {
           method: "POST",
           headers: {
@@ -378,7 +378,7 @@ export default function AdminPage() {
       if (!response.ok) {
         throw new Error(
           data.error ??
-            "Unable to add song to Spotify queue."
+            "Unable to add song to the Spotify playlist."
         );
       }
 
@@ -391,13 +391,13 @@ export default function AdminPage() {
       );
 
       setMessage(
-        "Song added to the Spotify queue."
+        "Song added to the Spotify playlist."
       );
     } catch (error) {
       setError(
         error instanceof Error
           ? error.message
-          : "Unable to add song to Spotify queue."
+          : "Unable to add song to the Spotify playlist."
       );
     } finally {
       setQueueingId(null);
