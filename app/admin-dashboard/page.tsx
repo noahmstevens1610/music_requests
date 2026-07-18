@@ -109,6 +109,10 @@ export default function AdminPage() {
     new Set()
   );
 
+  const defaultedQueueTrackIds = useRef<Set<string>>(
+    new Set()
+  );
+
   async function loadSongMetadata(
     spotifyTrackId: string
   ) {
@@ -243,6 +247,57 @@ export default function AdminPage() {
           }
         })
       );
+
+      await Promise.all(
+        queueTracks.map(async (track) => {
+          if (
+            defaultedQueueTrackIds.current.has(track.id)
+          ) {
+            return;
+          }
+
+          const loadedMetadata =
+            metadata[track.id] ??
+            (await loadSongMetadata(track.id).catch(
+              () => null
+            ));
+
+          if (loadedMetadata) {
+            defaultedQueueTrackIds.current.add(track.id);
+            return;
+          }
+
+          const matchingRequest = requests.find(
+            (request) =>
+              request.spotify_track_id === track.id &&
+              request.status !== "played" &&
+              request.status !== "removed"
+          );
+
+          const defaultCategory:
+            | "swing_song"
+            | "line_dance" =
+            matchingRequest?.request_type ===
+            "line_dance"
+              ? "line_dance"
+              : "swing_song";
+
+          try {
+            await saveQueuedTrackCategory(
+              track,
+              defaultCategory,
+              false
+            );
+
+            defaultedQueueTrackIds.current.add(track.id);
+          } catch (error) {
+            console.error(
+              `Unable to save default category for ${track.id}:`,
+              error
+            );
+          }
+        })
+      );
     } catch (error) {
       console.error("Unable to load Spotify queue:", error);
     } finally {
@@ -349,6 +404,72 @@ export default function AdminPage() {
     }
   }
 
+  async function saveQueuedTrackCategory(
+    track: SpotifyQueueTrack,
+    category: "swing_song" | "line_dance",
+    showMessage = true
+  ) {
+    const existingMetadata =
+      metadata[track.id] ?? null;
+
+    const response = await fetch(
+      "/api/admin/song-metadata",
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          spotifyTrackId: track.id,
+          trackName: track.name,
+          artistName: track.artist,
+          spotifyUri: track.uri,
+          albumName: track.album,
+          albumImage: track.image,
+          category,
+          choreography:
+            existingMetadata?.choreography ?? "",
+          alsoKnownAs:
+            existingMetadata?.also_known_as ?? "",
+          isSongSwap:
+            existingMetadata?.is_song_swap ?? false,
+          originalSpotifyTrackId:
+            existingMetadata?.original_spotify_track_id ??
+            null,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ??
+          "Unable to change the queued song category."
+      );
+    }
+
+    const savedMetadata =
+      data.songMetadata as SongMetadata;
+
+    setMetadata((current) => ({
+      ...current,
+      [track.id]: savedMetadata,
+    }));
+
+    loadedMetadataIds.current.add(track.id);
+
+    if (showMessage) {
+      setMessage(
+        category === "line_dance"
+          ? "Queued song changed to Line Dance."
+          : "Queued song changed to Swing Song."
+      );
+    }
+
+    return savedMetadata;
+  }
+
   async function updateQueuedTrackCategory(
     track: SpotifyQueueTrack,
     category: "swing_song" | "line_dance"
@@ -358,60 +479,10 @@ export default function AdminPage() {
       setMessage("");
       setChangingCategoryId(track.id);
 
-      const existingMetadata =
-        metadata[track.id] ?? null;
-
-      const response = await fetch(
-        "/api/admin/song-metadata",
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            spotifyTrackId: track.id,
-            trackName: track.name,
-            artistName: track.artist,
-            spotifyUri: track.uri,
-            albumName: track.album,
-            albumImage: track.image,
-            category,
-            choreography:
-              existingMetadata?.choreography ?? "",
-            alsoKnownAs:
-              existingMetadata?.also_known_as ?? "",
-            isSongSwap:
-              existingMetadata?.is_song_swap ?? false,
-            originalSpotifyTrackId:
-              existingMetadata?.original_spotify_track_id ??
-              null,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ??
-            "Unable to change the queued song category."
-        );
-      }
-
-      const savedMetadata =
-        data.songMetadata as SongMetadata;
-
-      setMetadata((current) => ({
-        ...current,
-        [track.id]: savedMetadata,
-      }));
-
-      loadedMetadataIds.current.add(track.id);
-
-      setMessage(
-        category === "line_dance"
-          ? "Queued song changed to Line Dance."
-          : "Queued song changed to Swing Song."
+      await saveQueuedTrackCategory(
+        track,
+        category,
+        true
       );
     } catch (error) {
       setError(
@@ -1152,72 +1223,70 @@ export default function AdminPage() {
                       key={`${track.uri}-${index}`}
                       className="rounded-xl border border-neutral-800 bg-black/40 p-3"
                     >
-                      <div className="flex items-center gap-3">
-                        {track.image ? (
-                          <img
-                            src={track.image}
-                            alt={`${track.name} album artwork`}
-                            className="h-12 w-12 shrink-0 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-neutral-500">
-                            ♪
-                          </div>
-                        )}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          {track.image ? (
+                            <img
+                              src={track.image}
+                              alt={`${track.name} album artwork`}
+                              className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-neutral-500">
+                              ♪
+                            </div>
+                          )}
 
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold">
-                            {track.name}
-                          </p>
-                          <p className="truncate text-xs text-neutral-400">
-                            {track.artist}
-                          </p>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold">
+                              {track.name}
+                            </p>
+                            <p className="truncate text-xs text-neutral-400">
+                              {track.artist}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0">
+                          <div className="relative grid grid-cols-2 rounded-full border border-neutral-700 bg-neutral-950 p-1">
+                            <span
+                              className={`absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-full bg-[#c4202f] transition-transform duration-200 ${
+                                trackMetadata?.category === "line_dance"
+                                  ? "translate-x-full"
+                                  : "translate-x-0"
+                              }`}
+                            />
+
+                            <button
+                              type="button"
+                              disabled={isChanging}
+                              onClick={() =>
+                                updateQueuedTrackCategory(
+                                  track,
+                                  "swing_song"
+                                )
+                              }
+                              className="relative z-10 min-w-16 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white disabled:opacity-50"
+                            >
+                              Swing
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={isChanging}
+                              onClick={() =>
+                                updateQueuedTrackCategory(
+                                  track,
+                                  "line_dance"
+                                )
+                              }
+                              className="relative z-10 min-w-16 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white disabled:opacity-50"
+                            >
+                              Line
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          disabled={isChanging}
-                          onClick={() =>
-                            updateQueuedTrackCategory(
-                              track,
-                              "swing_song"
-                            )
-                          }
-                          className={`rounded-lg border px-2 py-2 text-xs font-bold transition disabled:opacity-50 ${
-                            trackMetadata?.category === "swing_song"
-                              ? "border-[#c4202f] bg-[#c4202f] text-white"
-                              : "border-neutral-700 bg-neutral-950 text-neutral-300"
-                          }`}
-                        >
-                          Swing Song
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={isChanging}
-                          onClick={() =>
-                            updateQueuedTrackCategory(
-                              track,
-                              "line_dance"
-                            )
-                          }
-                          className={`rounded-lg border px-2 py-2 text-xs font-bold transition disabled:opacity-50 ${
-                            trackMetadata?.category === "line_dance"
-                              ? "border-[#c4202f] bg-[#c4202f] text-white"
-                              : "border-neutral-700 bg-neutral-950 text-neutral-300"
-                          }`}
-                        >
-                          Line Dance
-                        </button>
-                      </div>
-
-                      {!trackMetadata && (
-                        <p className="mt-2 text-[11px] text-neutral-500">
-                          Choose a category for this queued song.
-                        </p>
-                      )}
                     </article>
                   );
                 })}
