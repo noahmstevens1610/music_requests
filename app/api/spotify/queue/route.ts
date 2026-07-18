@@ -6,14 +6,12 @@ type QueueRequestBody = {
   requestId?: string;
 };
 
-type SpotifyArtist = {
-  name?: string;
-};
-
 type SpotifyImage = {
   url?: string;
-  height?: number | null;
-  width?: number | null;
+};
+
+type SpotifyArtist = {
+  name?: string;
 };
 
 type SpotifyAlbum = {
@@ -25,11 +23,11 @@ type SpotifyTrack = {
   id?: string;
   uri?: string;
   name?: string;
-  type?: string;
   artists?: SpotifyArtist[];
   album?: SpotifyAlbum;
   duration_ms?: number;
   explicit?: boolean;
+  type?: string;
 };
 
 type SpotifyQueueResponse = {
@@ -37,160 +35,43 @@ type SpotifyQueueResponse = {
   queue?: SpotifyTrack[];
 };
 
-type SongMetadataRecord = {
-  spotify_track_id: string;
-  category: "line_dance" | "swing_song" | "special" | null;
-  choreography: string | null;
-  also_known_as: string | null;
-  is_song_swap: boolean | null;
-  original_spotify_track_id: string | null;
-};
-
-type RequestRecord = {
+type RequestRow = {
   id: string;
-  spotify_track_id: string | null;
-  spotify_uri: string | null;
-  track_name: string | null;
-  artist_name: string | null;
-  album_name: string | null;
-  album_image: string | null;
-  request_type: "swing" | "line_dance" | null;
-  status: string | null;
+  spotify_track_id: string;
+  request_type: "swing" | "line_dance";
+  created_at?: string | null;
 };
 
-type PlaybackTrack = {
-  spotifyTrackId: string;
-  spotifyUri: string;
-  trackName: string;
-  artistName: string;
-  albumName: string | null;
-  albumImage: string | null;
-  durationMs: number | null;
-  explicit: boolean;
-  requestType: "swing" | "line_dance";
-  requestId: string | null;
-  lineDance: {
-    name: string;
-    alsoKnownAs: string | null;
-    isOriginalSong: boolean;
-    originalSong: null;
-  } | null;
+type LineDanceSongRow = {
+  id: string;
+  line_dance_id: string;
+  spotify_track_id: string;
+  track_name: string;
+  artist_name: string;
+  is_original_song: boolean;
 };
 
-function getSpotifyErrorMessage(
-  status: number,
-  spotifyError: string
-): string {
-  if (status === 401) {
-    return "Spotify authorization expired. Reconnect Spotify.";
-  }
+type LineDanceRow = {
+  id: string;
+  name: string;
+  also_known_as: string | null;
+};
 
-  if (status === 403) {
-    return (
-      spotifyError ||
-      "Spotify denied playback access. Reconnect Spotify and confirm the account has Premium."
-    );
-  }
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
 
-  if (status === 404) {
-    return "No active Spotify playback device was found. Start playing Spotify on the DJ device and try again.";
-  }
+function getTrackImage(track: SpotifyTrack) {
+  return track.album?.images?.[0]?.url ?? null;
+}
 
-  if (status === 429) {
-    return "Spotify rate limit reached. Wait briefly and try again.";
-  }
-
+function getTrackArtist(track: SpotifyTrack) {
   return (
-    spotifyError ||
-    `Spotify request failed with status ${status}.`
-  );
-}
-
-async function readSpotifyError(
-  response: Response
-): Promise<string> {
-  try {
-    const errorData = await response.json();
-
-    return (
-      errorData?.error?.message ??
-      errorData?.error_description ??
-      ""
-    );
-  } catch {
-    return "";
-  }
-}
-
-function getTrackArtist(track: SpotifyTrack): string {
-  const artists =
     track.artists
       ?.map((artist) => artist.name?.trim())
-      .filter((name): name is string => Boolean(name)) ?? [];
-
-  return artists.join(", ") || "Unknown artist";
-}
-
-function getAlbumImage(track: SpotifyTrack): string | null {
-  const images = track.album?.images ?? [];
-
-  if (images.length === 0) {
-    return null;
-  }
-
-  const preferredImage =
-    images.find(
-      (image) =>
-        typeof image.width === "number" &&
-        image.width >= 300
-    ) ?? images[0];
-
-  return preferredImage?.url ?? null;
-}
-
-function mapPlaybackTrack(
-  track: SpotifyTrack,
-  requestRecord?: RequestRecord,
-  songMetadata?: SongMetadataRecord
-): PlaybackTrack {
-  const requestType: "swing" | "line_dance" =
-    songMetadata?.category === "line_dance"
-      ? "line_dance"
-      : songMetadata?.category === "swing_song"
-        ? "swing"
-        : requestRecord?.request_type === "line_dance"
-          ? "line_dance"
-          : "swing";
-
-  const lineDance =
-    requestType === "line_dance" &&
-    songMetadata?.choreography
-      ? {
-          name: songMetadata.choreography,
-          alsoKnownAs:
-            songMetadata.also_known_as ?? null,
-          isOriginalSong:
-            !Boolean(songMetadata.is_song_swap),
-          originalSong: null,
-        }
-      : null;
-
-  return {
-    spotifyTrackId: track.id ?? "",
-    spotifyUri: track.uri ?? "",
-    trackName: track.name ?? "Unknown song",
-    artistName: getTrackArtist(track),
-    albumName: track.album?.name ?? null,
-    albumImage: getAlbumImage(track),
-    durationMs:
-      typeof track.duration_ms === "number"
-        ? track.duration_ms
-        : null,
-    explicit: Boolean(track.explicit),
-    requestType,
-    requestId: requestRecord?.id ?? null,
-    lineDance,
-  };
+      .filter((name): name is string => Boolean(name))
+      .join(", ") || "Unknown Artist"
+  );
 }
 
 export async function GET() {
@@ -209,186 +90,316 @@ export async function GET() {
     );
 
     if (!spotifyResponse.ok) {
-      const spotifyError =
-        await readSpotifyError(spotifyResponse);
+      let spotifyError = "";
+
+      try {
+        const errorData = await spotifyResponse.json();
+
+        spotifyError =
+          errorData?.error?.message ??
+          errorData?.error_description ??
+          "";
+      } catch {
+        spotifyError = "";
+      }
+
+      if (spotifyResponse.status === 401) {
+        return NextResponse.json(
+          {
+            error:
+              "Spotify authorization expired. Reconnect Spotify.",
+          },
+          { status: 401 }
+        );
+      }
+
+      if (spotifyResponse.status === 403) {
+        return NextResponse.json(
+          {
+            error:
+              spotifyError ||
+              "Spotify denied playback access. Reconnect Spotify and confirm the account has Premium.",
+          },
+          { status: 403 }
+        );
+      }
+
+      if (spotifyResponse.status === 404) {
+        return NextResponse.json(
+          {
+            error:
+              "No active Spotify playback device was found. Start playing Spotify on the DJ device.",
+          },
+          { status: 404 }
+        );
+      }
+
+      if (spotifyResponse.status === 429) {
+        return NextResponse.json(
+          {
+            error:
+              "Spotify rate limit reached. Wait briefly and try again.",
+          },
+          { status: 429 }
+        );
+      }
 
       return NextResponse.json(
         {
-          error: getSpotifyErrorMessage(
-            spotifyResponse.status,
-            spotifyError
-          ),
+          error:
+            spotifyError ||
+            `Spotify playback request failed with status ${spotifyResponse.status}.`,
         },
-        {
-          status: spotifyResponse.status,
-        }
+        { status: spotifyResponse.status }
       );
     }
 
     const spotifyData =
       (await spotifyResponse.json()) as SpotifyQueueResponse;
 
-    const currentlyPlaying =
+    const currentTrack =
       spotifyData.currently_playing?.type === "track"
         ? spotifyData.currently_playing
         : null;
 
-    const upcomingTracks = (spotifyData.queue ?? [])
-      .filter((item) => item?.type === "track")
-      .slice(0, 4);
-
-    const allTracks = [
-      ...(currentlyPlaying ? [currentlyPlaying] : []),
-      ...upcomingTracks,
-    ];
-
-    const spotifyTrackIds = Array.from(
-      new Set(
-        allTracks
-          .map((track) => track.id)
-          .filter(
-            (trackId): trackId is string =>
-              typeof trackId === "string" &&
-              trackId.length > 0
-          )
-      )
+    const queuedTracks = (spotifyData.queue ?? []).filter(
+      (track) => track.type === "track"
     );
 
-    let requestRecords: RequestRecord[] = [];
+    const allSpotifyTracks = [
+      ...(currentTrack ? [currentTrack] : []),
+      ...queuedTracks,
+    ];
+
+    const spotifyTrackIds = uniqueStrings(
+      allSpotifyTracks
+        .map((track) => track.id?.trim() ?? "")
+        .filter(Boolean)
+    );
+
+    const requestsByTrackId = new Map<string, RequestRow>();
+    const lineDanceSongsByTrackId =
+      new Map<string, LineDanceSongRow>();
+    const lineDancesById = new Map<string, LineDanceRow>();
+    const originalSongsByDanceId =
+      new Map<string, LineDanceSongRow>();
 
     if (spotifyTrackIds.length > 0) {
-      const { data, error } = await supabaseAdmin
-        .from("requests")
-        .select(
-          `
-            id,
-            spotify_track_id,
-            spotify_uri,
-            track_name,
-            artist_name,
-            album_name,
-            album_image,
-            request_type,
-            status
-          `
-        )
-        .in("spotify_track_id", spotifyTrackIds)
-        .order("created_at", {
-          ascending: false,
-        });
+      const { data: requestRows, error: requestsError } =
+        await supabaseAdmin
+          .from("requests")
+          .select(
+            "id, spotify_track_id, request_type, created_at"
+          )
+          .in("spotify_track_id", spotifyTrackIds)
+          .order("created_at", {
+            ascending: false,
+          });
 
-      if (error) {
+      if (requestsError) {
         console.error(
-          "Unable to match playback tracks to requests:",
-          error
+          "Unable to load matching requests:",
+          requestsError.message
         );
       } else {
-        requestRecords = (data ?? []) as RequestRecord[];
+        for (const requestRow of (requestRows ??
+          []) as RequestRow[]) {
+          if (
+            !requestsByTrackId.has(
+              requestRow.spotify_track_id
+            )
+          ) {
+            requestsByTrackId.set(
+              requestRow.spotify_track_id,
+              requestRow
+            );
+          }
+        }
       }
-    }
 
-    let songMetadataRecords: SongMetadataRecord[] = [];
-
-    if (spotifyTrackIds.length > 0) {
-      const { data, error } = await supabaseAdmin
-        .from("song_metadata")
+      const {
+        data: matchingLineDanceSongs,
+        error: lineDanceSongsError,
+      } = await supabaseAdmin
+        .from("line_dance_songs")
         .select(
-          `
-            spotify_track_id,
-            category,
-            choreography,
-            also_known_as,
-            is_song_swap,
-            original_spotify_track_id
-          `
+          "id, line_dance_id, spotify_track_id, track_name, artist_name, is_original_song"
         )
         .in("spotify_track_id", spotifyTrackIds);
 
-      if (error) {
+      if (lineDanceSongsError) {
         console.error(
-          "Unable to load song metadata for playback:",
-          error
+          "Unable to load line dance songs:",
+          lineDanceSongsError.message
         );
       } else {
-        songMetadataRecords =
-          (data ?? []) as SongMetadataRecord[];
-      }
-    }
+        const matchingSongs =
+          (matchingLineDanceSongs ??
+            []) as LineDanceSongRow[];
 
-    const metadataByTrackId = new Map<
-      string,
-      SongMetadataRecord
-    >();
+        for (const song of matchingSongs) {
+          if (
+            !lineDanceSongsByTrackId.has(
+              song.spotify_track_id
+            )
+          ) {
+            lineDanceSongsByTrackId.set(
+              song.spotify_track_id,
+              song
+            );
+          }
+        }
 
-    for (const songMetadata of songMetadataRecords) {
-      if (songMetadata.spotify_track_id) {
-        metadataByTrackId.set(
-          songMetadata.spotify_track_id,
-          songMetadata
+        const lineDanceIds = uniqueStrings(
+          matchingSongs.map(
+            (song) => song.line_dance_id
+          )
         );
+
+        if (lineDanceIds.length > 0) {
+          const {
+            data: lineDanceRows,
+            error: lineDancesError,
+          } = await supabaseAdmin
+            .from("line_dances")
+            .select("id, name, also_known_as")
+            .in("id", lineDanceIds);
+
+          if (lineDancesError) {
+            console.error(
+              "Unable to load line dances:",
+              lineDancesError.message
+            );
+          } else {
+            for (const lineDance of (lineDanceRows ??
+              []) as LineDanceRow[]) {
+              lineDancesById.set(
+                lineDance.id,
+                lineDance
+              );
+            }
+          }
+
+          const {
+            data: originalSongRows,
+            error: originalSongsError,
+          } = await supabaseAdmin
+            .from("line_dance_songs")
+            .select(
+              "id, line_dance_id, spotify_track_id, track_name, artist_name, is_original_song"
+            )
+            .in("line_dance_id", lineDanceIds)
+            .eq("is_original_song", true);
+
+          if (originalSongsError) {
+            console.error(
+              "Unable to load original line dance songs:",
+              originalSongsError.message
+            );
+          } else {
+            for (const originalSong of (originalSongRows ??
+              []) as LineDanceSongRow[]) {
+              if (
+                !originalSongsByDanceId.has(
+                  originalSong.line_dance_id
+                )
+              ) {
+                originalSongsByDanceId.set(
+                  originalSong.line_dance_id,
+                  originalSong
+                );
+              }
+            }
+          }
+        }
       }
     }
 
-    const requestByTrackId = new Map<
-      string,
-      RequestRecord
-    >();
+    function formatTrack(track: SpotifyTrack) {
+      const spotifyTrackId = track.id?.trim() ?? "";
+      const matchingRequest =
+        requestsByTrackId.get(spotifyTrackId) ?? null;
+      const matchingLineDanceSong =
+        lineDanceSongsByTrackId.get(
+          spotifyTrackId
+        ) ?? null;
 
-    for (const requestRecord of requestRecords) {
-      if (
-        requestRecord.spotify_track_id &&
-        !requestByTrackId.has(
-          requestRecord.spotify_track_id
-        )
-      ) {
-        requestByTrackId.set(
-          requestRecord.spotify_track_id,
-          requestRecord
-        );
-      }
+      const matchingLineDance =
+        matchingLineDanceSong
+          ? lineDancesById.get(
+              matchingLineDanceSong.line_dance_id
+            ) ?? null
+          : null;
+
+      const originalSong =
+        matchingLineDanceSong
+          ? originalSongsByDanceId.get(
+              matchingLineDanceSong.line_dance_id
+            ) ?? null
+          : null;
+
+      const lineDance =
+        matchingLineDanceSong && matchingLineDance
+          ? {
+              id: matchingLineDance.id,
+              name: matchingLineDance.name,
+              alsoKnownAs:
+                matchingLineDance.also_known_as,
+              isOriginalSong:
+                matchingLineDanceSong.is_original_song,
+              originalSong:
+                !matchingLineDanceSong.is_original_song &&
+                originalSong
+                  ? {
+                      trackName:
+                        originalSong.track_name,
+                      artistName:
+                        originalSong.artist_name,
+                    }
+                  : null,
+            }
+          : null;
+
+      const requestType:
+        | "swing"
+        | "line_dance" = lineDance
+        ? "line_dance"
+        : matchingRequest?.request_type ??
+          "swing";
+
+      return {
+        spotifyTrackId,
+        spotifyUri:
+          track.uri ??
+          (spotifyTrackId
+            ? `spotify:track:${spotifyTrackId}`
+            : ""),
+        trackName:
+          track.name?.trim() || "Unknown Song",
+        artistName: getTrackArtist(track),
+        albumName:
+          track.album?.name?.trim() || null,
+        albumImage: getTrackImage(track),
+        durationMs:
+          typeof track.duration_ms === "number"
+            ? track.duration_ms
+            : null,
+        explicit: Boolean(track.explicit),
+        requestType,
+        requestId: matchingRequest?.id ?? null,
+        lineDance,
+      };
     }
 
-    const nowPlaying = currentlyPlaying
-      ? mapPlaybackTrack(
-          currentlyPlaying,
-          currentlyPlaying.id
-            ? requestByTrackId.get(currentlyPlaying.id)
-            : undefined,
-          currentlyPlaying.id
-            ? metadataByTrackId.get(currentlyPlaying.id)
-            : undefined
-        )
-      : null;
-
-    const upcoming = upcomingTracks.map((track) =>
-      mapPlaybackTrack(
-        track,
-        track.id
-          ? requestByTrackId.get(track.id)
-          : undefined,
-        track.id
-          ? metadataByTrackId.get(track.id)
-          : undefined
-      )
-    );
-
-    return NextResponse.json(
-      {
-        isPlaying: Boolean(nowPlaying),
-        nowPlaying,
-        upcoming,
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        headers: {
-          "Cache-Control":
-            "no-store, no-cache, must-revalidate",
-        },
-      }
-    );
+    return NextResponse.json({
+      isPlaying: Boolean(currentTrack),
+      nowPlaying: currentTrack
+        ? formatTrack(currentTrack)
+        : null,
+      upcoming: queuedTracks.map(formatTrack),
+      updatedAt: new Date().toISOString(),
+    });
   } catch (error) {
-    console.error("Spotify queue GET error:", error);
-
     return NextResponse.json(
       {
         error:
@@ -396,16 +407,15 @@ export async function GET() {
             ? error.message
             : "Unable to load Spotify playback.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as QueueRequestBody;
+    const body =
+      (await request.json()) as QueueRequestBody;
 
     const requestId =
       typeof body.requestId === "string"
@@ -414,30 +424,24 @@ export async function POST(request: NextRequest) {
 
     if (!requestId) {
       return NextResponse.json(
-        {
-          error: "Missing requestId.",
-        },
-        {
-          status: 400,
-        }
+        { error: "Missing requestId." },
+        { status: 400 }
       );
     }
 
     const { data: songRequest, error: requestError } =
       await supabaseAdmin
         .from("requests")
-        .select("id, spotify_uri, track_name, status")
+        .select(
+          "id, spotify_uri, track_name, status"
+        )
         .eq("id", requestId)
         .maybeSingle();
 
     if (requestError) {
       return NextResponse.json(
-        {
-          error: requestError.message,
-        },
-        {
-          status: 500,
-        }
+        { error: requestError.message },
+        { status: 500 }
       );
     }
 
@@ -446,24 +450,22 @@ export async function POST(request: NextRequest) {
         {
           error: "Song request was not found.",
         },
-        {
-          status: 404,
-        }
+        { status: 404 }
       );
     }
 
     if (!songRequest.spotify_uri) {
       return NextResponse.json(
         {
-          error: "This request has no Spotify URI.",
+          error:
+            "This request has no Spotify URI.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    const accessToken = await getSpotifyAccessToken();
+    const accessToken =
+      await getSpotifyAccessToken();
 
     const queueUrl = new URL(
       "https://api.spotify.com/v1/me/player/queue"
@@ -474,24 +476,78 @@ export async function POST(request: NextRequest) {
       songRequest.spotify_uri
     );
 
-    const spotifyResponse = await fetch(queueUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      cache: "no-store",
-    });
+    const spotifyResponse = await fetch(
+      queueUrl,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+      }
+    );
 
     if (!spotifyResponse.ok) {
-      const spotifyError =
-        await readSpotifyError(spotifyResponse);
+      let spotifyError = "";
+
+      try {
+        const errorData =
+          await spotifyResponse.json();
+
+        spotifyError =
+          errorData?.error?.message ??
+          errorData?.error_description ??
+          "";
+      } catch {
+        spotifyError = "";
+      }
+
+      if (spotifyResponse.status === 401) {
+        return NextResponse.json(
+          {
+            error:
+              "Spotify authorization expired. Reconnect Spotify.",
+          },
+          { status: 401 }
+        );
+      }
+
+      if (spotifyResponse.status === 403) {
+        return NextResponse.json(
+          {
+            error:
+              spotifyError ||
+              "Spotify denied queue access. Reconnect Spotify and confirm the account has Premium.",
+          },
+          { status: 403 }
+        );
+      }
+
+      if (spotifyResponse.status === 404) {
+        return NextResponse.json(
+          {
+            error:
+              "No active Spotify playback device was found. Start playing Spotify on the DJ device and try again.",
+          },
+          { status: 404 }
+        );
+      }
+
+      if (spotifyResponse.status === 429) {
+        return NextResponse.json(
+          {
+            error:
+              "Spotify rate limit reached. Wait briefly and try again.",
+          },
+          { status: 429 }
+        );
+      }
 
       return NextResponse.json(
         {
-          error: getSpotifyErrorMessage(
-            spotifyResponse.status,
-            spotifyError
-          ),
+          error:
+            spotifyError ||
+            `Spotify queue request failed with status ${spotifyResponse.status}.`,
         },
         {
           status: spotifyResponse.status,
@@ -499,15 +555,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: updatedRequest, error: updateError } =
-      await supabaseAdmin
-        .from("requests")
-        .update({
-          status: "added",
-        })
-        .eq("id", requestId)
-        .select()
-        .maybeSingle();
+    const {
+      data: updatedRequest,
+      error: updateError,
+    } = await supabaseAdmin
+      .from("requests")
+      .update({
+        status: "added",
+      })
+      .eq("id", requestId)
+      .select()
+      .maybeSingle();
 
     if (updateError) {
       return NextResponse.json(
@@ -516,9 +574,7 @@ export async function POST(request: NextRequest) {
             "The song was added to Spotify, but its request status could not be updated.",
           details: updateError.message,
         },
-        {
-          status: 500,
-        }
+        { status: 500 }
       );
     }
 
@@ -528,8 +584,6 @@ export async function POST(request: NextRequest) {
       request: updatedRequest,
     });
   } catch (error) {
-    console.error("Spotify queue POST error:", error);
-
     return NextResponse.json(
       {
         error:
@@ -537,9 +591,7 @@ export async function POST(request: NextRequest) {
             ? error.message
             : "Unable to add the song to Spotify.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
