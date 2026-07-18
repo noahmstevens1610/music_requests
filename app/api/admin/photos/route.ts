@@ -57,7 +57,18 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const photos = data ?? [];
+  const photos = (data ?? []).map((photo) => {
+  const {
+    data: { publicUrl },
+  } = supabaseAdmin.storage
+    .from("guest-photos")
+    .getPublicUrl(photo.storage_path);
+
+  return {
+    ...photo,
+    image_url: publicUrl,
+  };
+});
 
   return NextResponse.json({
     photos,
