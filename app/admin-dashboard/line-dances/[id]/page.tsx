@@ -471,10 +471,12 @@ export default function LineDanceSongsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-black p-6 text-white">
-        <div className="mx-auto max-w-5xl">
-          <p className="text-neutral-400">
-            Loading line dance...
+      <main className="relative min-h-screen overflow-hidden bg-black px-4 py-8 text-white sm:px-6 sm:py-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.20),transparent_36%)]" />
+
+        <div className="relative mx-auto max-w-7xl border-y border-white/15 py-16 text-center">
+          <p className="font-heading text-2xl uppercase tracking-[0.08em] text-white/35">
+            Loading Line Dance…
           </p>
         </div>
       </main>
@@ -483,26 +485,30 @@ export default function LineDanceSongsPage() {
 
   if (!lineDance) {
     return (
-      <main className="min-h-screen bg-black p-6 text-white">
-        <div className="mx-auto max-w-5xl">
-          <h1 className="text-3xl font-bold">
-            Line dance not found
+      <main className="relative min-h-screen overflow-hidden bg-black px-4 py-8 text-white sm:px-6 sm:py-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.20),transparent_36%)]" />
+
+        <div className="relative mx-auto max-w-7xl">
+          <p className="font-heading text-sm uppercase tracking-[0.18em] text-[#c4202f]">
+            Error
+          </p>
+
+          <h1 className="font-heading mt-2 text-5xl uppercase tracking-[0.035em] text-white">
+            Line Dance Not Found
           </h1>
 
-          {error && (
-            <p className="mt-4 text-red-300">
+          {error ? (
+            <div className="mt-6 border-l-4 border-[#c4202f] bg-[#c4202f]/10 px-5 py-4 text-red-100">
               {error}
-            </p>
-          )}
+            </div>
+          ) : null}
 
           <button
             type="button"
             onClick={() =>
-              router.push(
-                "/admin-dashboard/line-dances"
-              )
+              router.push("/admin-dashboard/line-dances")
             }
-            className="mt-6 rounded-xl border border-neutral-700 px-4 py-2 font-semibold hover:bg-neutral-800"
+            className="font-heading mt-8 rounded-md border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f]"
           >
             Back to Line Dances
           </button>
@@ -518,214 +524,195 @@ export default function LineDanceSongsPage() {
       .filter(Boolean) ?? [];
 
   return (
-    <main className="min-h-screen bg-black p-4 text-white sm:p-8">
-      <header className="mx-auto mb-8 flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <button
-            type="button"
-            onClick={() =>
-              router.push(
-                "/admin-dashboard/line-dances"
-              )
-            }
-            className="mb-4 text-sm font-semibold text-neutral-400 hover:text-white"
-          >
-            ← Back to Line Dances
-          </button>
+    <main className="relative min-h-screen overflow-hidden bg-black px-4 pb-12 pt-8 text-white sm:px-6 sm:pb-16 sm:pt-10">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.20),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_30%)]" />
 
-          <h1 className="text-4xl font-bold">
-            {lineDance.name}
-          </h1>
+      <div className="relative mx-auto max-w-7xl">
+        <header className="flex flex-col gap-6 border-b border-white/15 pb-7 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <button
+              type="button"
+              onClick={() =>
+                router.push("/admin-dashboard/line-dances")
+              }
+              className="font-heading mb-5 text-sm uppercase tracking-[0.08em] text-white/45 transition hover:text-[#c4202f]"
+            >
+              ← Back to Line Dances
+            </button>
 
-          {alternateNames.length >
-            0 && (
-            <div className="mt-4">
-              <p className="mb-2 text-sm text-neutral-400">
-                Also known as:
-              </p>
+            <p className="font-heading text-sm uppercase tracking-[0.18em] text-[#c4202f]">
+              Choreography
+            </p>
 
-              <div className="flex flex-wrap gap-2">
-                {alternateNames.map(
-                  (alternateName) => (
-                    <span
-                      key={
-                        alternateName
-                      }
-                      className="rounded-full border border-neutral-700 bg-neutral-950 px-3 py-1 text-sm text-neutral-300"
-                    >
-                      {
-                        alternateName
-                      }
-                    </span>
-                  )
-                )}
+            <h1 className="font-heading mt-2 break-words text-5xl uppercase leading-none tracking-[0.035em] text-white sm:text-7xl">
+              {lineDance.name}
+            </h1>
+
+            {alternateNames.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {alternateNames.map((alternateName) => (
+                  <span
+                    key={alternateName}
+                    className="font-heading border border-white/15 bg-white/5 px-3 py-1.5 text-xs uppercase tracking-[0.06em] text-white/50"
+                  >
+                    {alternateName}
+                  </span>
+                ))}
               </div>
-            </div>
-          )}
-        </div>
+            ) : null}
+          </div>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              void loadDanceAndSongs()
-            }
-            className="rounded-xl border border-neutral-700 px-4 py-2 font-semibold hover:bg-neutral-800"
-          >
-            Refresh
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void loadDanceAndSongs()}
+              className="font-heading rounded-md border-2 border-white/20 px-5 py-3 text-base uppercase tracking-[0.07em] text-white/70 transition hover:border-white/40 hover:bg-white/5 hover:text-white"
+            >
+              Refresh
+            </button>
 
-          <button
-            type="button"
-            onClick={logout}
-            className="rounded-xl border border-neutral-700 px-4 py-2 font-semibold hover:bg-neutral-800"
-          >
-            Log Out
-          </button>
-        </div>
-      </header>
+            <button
+              type="button"
+              onClick={logout}
+              className="font-heading rounded-md border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f]"
+            >
+              Log Out
+            </button>
+          </div>
+        </header>
 
-      <div className="mx-auto max-w-5xl">
-        {error && (
-          <div className="mb-6 rounded-xl border border-red-500/40 bg-red-950/40 p-4 text-red-200">
+        {error ? (
+          <div className="mt-6 border-l-4 border-[#c4202f] bg-[#c4202f]/10 px-5 py-4 text-red-100">
             {error}
           </div>
-        )}
+        ) : null}
 
-        {message && (
-          <div className="mb-6 rounded-xl border border-green-500/40 bg-green-950/40 p-4 text-green-200">
+        {message ? (
+          <div className="mt-6 border-l-4 border-white/40 bg-white/5 px-5 py-4 text-white/80">
             {message}
           </div>
-        )}
+        ) : null}
 
-        <section className="mb-10">
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold">
-              Associated Songs
-            </h2>
-
-            <p className="mt-1 text-sm text-neutral-500">
-              Multiple songs can be
-              marked as original. Every
-              associated song will
-              automatically populate
-              this line dance when
-              requested.
-            </p>
-          </div>
-
-          {songs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-neutral-800 p-8 text-center">
-              <p className="text-lg font-semibold text-neutral-300">
-                No songs connected yet
+        <section className="mt-10">
+          <div className="flex items-end justify-between gap-4 border-b-2 border-[#c4202f] pb-4">
+            <div>
+              <p className="font-heading text-xs uppercase tracking-[0.18em] text-[#c4202f]">
+                Connected Library
               </p>
 
-              <p className="mt-2 text-neutral-500">
-                Search Spotify below.
-                The first added song
-                automatically becomes
+              <h2 className="font-heading mt-1 text-3xl uppercase tracking-[0.05em] text-white sm:text-4xl">
+                Associated Songs
+              </h2>
+            </div>
+
+            <span className="font-heading text-xl text-white/35">
+              {songs.length}
+            </span>
+          </div>
+
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-white/40">
+            Multiple songs can be marked as original. Every associated song
+            automatically populates this line dance when requested.
+          </p>
+
+          {songs.length === 0 ? (
+            <div className="mt-6 border border-dashed border-white/20 bg-[#0d0d0d] px-6 py-16 text-center">
+              <p className="font-heading text-3xl uppercase tracking-[0.06em] text-white/25">
+                No Songs Connected
+              </p>
+
+              <p className="mt-3 text-sm text-white/35">
+                Search Spotify below. The first added song automatically becomes
                 an original song.
               </p>
             </div>
           ) : (
-            <div className="grid gap-4">
-              {songs.map((song) => (
+            <div className="mt-4">
+              {songs.map((song, index) => (
                 <article
                   key={song.id}
-                  className={`rounded-2xl border p-4 ${
-                    song.is_original_song
-                      ? "border-amber-500/60 bg-amber-950/20"
-                      : "border-neutral-800 bg-neutral-950"
-                  }`}
+                  className="group grid gap-4 border-b border-white/15 px-1 py-6 transition hover:bg-white/[0.025] sm:grid-cols-[56px_80px_minmax(0,1fr)_auto] sm:items-center sm:gap-5 sm:px-3"
                 >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                    {song.album_image ? (
-                      <img
-                        src={
-                          song.album_image
-                        }
-                        alt=""
-                        className="h-20 w-20 rounded-xl object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-neutral-800 text-2xl">
-                        ♪
-                      </div>
-                    )}
+                  <div
+                    className={`font-heading grid h-11 w-11 place-items-center rounded-full text-xl text-white ${
+                      song.is_original_song
+                        ? "bg-[#c4202f]"
+                        : "border-2 border-white/20 bg-black"
+                    }`}
+                  >
+                    {String(index + 1).padStart(2, "0")}
+                  </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-lg font-bold">
-                          {
-                            song.track_name
-                          }
-                        </h3>
+                  {song.album_image ? (
+                    <img
+                      src={song.album_image}
+                      alt={`${song.track_name} album artwork`}
+                      className="h-20 w-20 shrink-0 border border-white/10 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center border border-white/10 bg-[#111] text-2xl text-white/25">
+                      ♪
+                    </div>
+                  )}
 
-                        {song.is_original_song ? (
-                          <span className="rounded-full border border-amber-500/50 bg-amber-950 px-3 py-1 text-xs font-bold text-amber-300">
-                            ★ Original Song
-                          </span>
-                        ) : (
-                          <span className="rounded-full border border-blue-500/40 bg-blue-950/30 px-3 py-1 text-xs font-bold text-blue-300">
-                            Song Swap
-                          </span>
-                        )}
-                      </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="truncate text-lg font-black text-white sm:text-xl">
+                        {song.track_name}
+                      </h3>
 
-                      <p className="mt-1 text-neutral-300">
-                        {song.artist_name}
-                      </p>
-
-                      {song.album_name && (
-                        <p className="mt-1 text-sm text-neutral-500">
-                          {
-                            song.album_name
-                          }
-                        </p>
-                      )}
+                      <span
+                        className={`font-heading border px-3 py-1.5 text-xs uppercase tracking-[0.07em] ${
+                          song.is_original_song
+                            ? "border-[#c4202f]/70 bg-[#c4202f]/15 text-[#ffadb5]"
+                            : "border-white/15 bg-white/5 text-white/45"
+                        }`}
+                      >
+                        {song.is_original_song
+                          ? "Original Song"
+                          : "Song Swap"}
+                      </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {!song.is_original_song && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void makeOriginal(
-                              song
-                            )
-                          }
-                          disabled={
-                            updatingSongId ===
-                            song.id
-                          }
-                          className="rounded-xl border border-amber-500/50 px-4 py-2 font-semibold text-amber-300 hover:bg-amber-950 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {updatingSongId ===
-                          song.id
-                            ? "Updating..."
-                            : "Make Original"}
-                        </button>
-                      )}
+                    <p className="mt-1 truncate text-sm text-white/55 sm:text-base">
+                      {song.artist_name}
+                    </p>
 
+                    {song.album_name ? (
+                      <p className="mt-1 truncate text-xs text-white/30 sm:text-sm">
+                        {song.album_name}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    {!song.is_original_song ? (
                       <button
                         type="button"
-                        onClick={() =>
-                          void removeSong(
-                            song
-                          )
-                        }
-                        disabled={
-                          deletingSongId ===
-                          song.id
-                        }
-                        className="rounded-xl border border-red-500/50 px-4 py-2 font-semibold text-red-300 hover:bg-red-950 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => void makeOriginal(song)}
+                        disabled={updatingSongId === song.id}
+                        className="font-heading rounded-md border-2 border-[#c4202f] px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f] disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        {deletingSongId ===
-                        song.id
-                          ? "Removing..."
-                          : "Remove"}
+                        {updatingSongId === song.id
+                          ? "Updating…"
+                          : "Make Original"}
                       </button>
-                    </div>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => void removeSong(song)}
+                      disabled={deletingSongId === song.id}
+                      aria-label={`Remove ${song.track_name}`}
+                      title="Remove"
+                      className="grid h-11 w-11 place-items-center rounded-md border-2 border-white/20 text-2xl font-bold leading-none text-white/65 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {deletingSongId === song.id ? (
+                        <span className="text-xs">•••</span>
+                      ) : (
+                        <span aria-hidden="true">×</span>
+                      )}
+                    </button>
                   </div>
                 </article>
               ))}
@@ -733,32 +720,33 @@ export default function LineDanceSongsPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-          <h2 className="text-2xl font-bold">
-            Add a Song
-          </h2>
+        <section className="mt-12 border border-[#c4202f]/50 bg-[#0d0d0d]">
+          <div className="border-b border-white/15 px-5 py-5 sm:px-7">
+            <p className="font-heading text-xs uppercase tracking-[0.18em] text-[#c4202f]">
+              Spotify Search
+            </p>
 
-          <p className="mt-2 text-sm text-neutral-400">
-            Search Spotify and connect
-            a song to {lineDance.name}.
-          </p>
+            <h2 className="font-heading mt-1 text-3xl uppercase tracking-[0.04em] text-white sm:text-4xl">
+              Add a Song
+            </h2>
 
-          <div className="mt-6">
+            <p className="mt-2 text-sm text-white/40">
+              Search Spotify and connect a song to {lineDance.name}.
+            </p>
+          </div>
+
+          <div className="p-5 sm:p-7">
             <div className="relative">
               <input
                 type="search"
                 value={searchQuery}
-                onChange={(event) =>
-                  setSearchQuery(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search song or artist"
                 autoComplete="off"
-                className="w-full rounded-xl border border-neutral-700 bg-black px-4 py-3 pr-12 text-white outline-none placeholder:text-neutral-600 focus:border-neutral-500"
+                className="w-full border-2 border-white/15 bg-black px-4 py-3 pr-12 text-white outline-none transition placeholder:text-white/20 focus:border-[#c4202f]"
               />
 
-              {searchQuery && (
+              {searchQuery ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -767,106 +755,99 @@ export default function LineDanceSongsPage() {
                     setError("");
                   }}
                   aria-label="Clear Spotify search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xl text-neutral-400 hover:bg-neutral-800 hover:text-white"
+                  className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-md text-2xl text-white/45 transition hover:bg-[#c4202f] hover:text-white"
                 >
                   ×
                 </button>
-              )}
+              ) : null}
             </div>
 
-            <p className="mt-2 text-sm text-neutral-500">
+            <p className="mt-2 text-sm text-white/30">
               {searching
-                ? "Searching Spotify..."
-                : searchQuery.trim()
-                      .length === 1
+                ? "Searching Spotify…"
+                : searchQuery.trim().length === 1
                   ? "Type one more character to search."
                   : "Results update automatically as you type."}
             </p>
-          </div>
 
-          {searchResults.length > 0 && (
-            <div className="mt-6 grid gap-3">
-              {searchResults.map(
-                (track) => {
-                  const alreadyLinked =
-                    linkedSpotifyIds.has(
-                      track.id
-                    );
+            {searchResults.length > 0 ? (
+              <div className="mt-6 border-t border-white/15">
+                {searchResults.map((track) => {
+                  const alreadyLinked = linkedSpotifyIds.has(track.id);
 
                   return (
                     <article
                       key={track.id}
-                      className="flex flex-col gap-4 rounded-xl border border-neutral-800 bg-black p-4 sm:flex-row sm:items-center"
+                      className="grid gap-4 border-b border-white/15 py-5 transition hover:bg-white/[0.025] sm:grid-cols-[64px_minmax(0,1fr)_auto] sm:items-center sm:gap-5 sm:px-2"
                     >
                       {track.image ? (
                         <img
-                          src={
-                            track.image
-                          }
-                          alt=""
-                          className="h-16 w-16 rounded-lg object-cover"
+                          src={track.image}
+                          alt={`${track.name} album artwork`}
+                          className="h-16 w-16 shrink-0 border border-white/10 object-cover"
                         />
                       ) : (
-                        <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-neutral-800 text-xl">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center border border-white/10 bg-[#111] text-xl text-white/25">
                           ♪
                         </div>
                       )}
 
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate font-bold">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-black text-white sm:text-lg">
                           {track.name}
                         </h3>
 
-                        <p className="truncate text-neutral-300">
+                        <p className="mt-1 truncate text-sm text-white/55">
                           {track.artist}
                         </p>
 
-                        {track.album && (
-                          <p className="truncate text-sm text-neutral-500">
-                            {
-                              track.album
-                            }
+                        {track.album ? (
+                          <p className="mt-1 truncate text-xs text-white/30">
+                            {track.album}
                           </p>
-                        )}
+                        ) : null}
                       </div>
 
                       <button
                         type="button"
-                        onClick={() =>
-                          void addSong(
-                            track
-                          )
-                        }
+                        onClick={() => void addSong(track)}
                         disabled={
                           alreadyLinked ||
-                          addingTrackId ===
-                            track.id
+                          addingTrackId === track.id
                         }
-                        className="rounded-xl bg-blue-600 px-4 py-2 font-semibold hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label={`Add ${track.name}`}
+                        title={
+                          alreadyLinked
+                            ? "Already Added"
+                            : "Add Song"
+                        }
+                        className={`font-heading rounded-md border-2 px-4 py-2.5 text-sm uppercase tracking-[0.07em] transition disabled:cursor-not-allowed ${
+                          alreadyLinked
+                            ? "border-white/10 bg-white/5 text-white/25"
+                            : "border-[#c4202f] text-white hover:bg-[#c4202f]"
+                        }`}
                       >
                         {alreadyLinked
                           ? "Added"
-                          : addingTrackId ===
-                              track.id
-                            ? "Adding..."
+                          : addingTrackId === track.id
+                            ? "Adding…"
                             : "Add Song"}
                       </button>
                     </article>
                   );
-                }
-              )}
-            </div>
-          )}
+                })}
+              </div>
+            ) : null}
 
-          {!searching &&
-            searchQuery.trim().length >=
-              2 &&
+            {!searching &&
+            searchQuery.trim().length >= 2 &&
             searchResults.length === 0 &&
-            !error && (
-              <p className="mt-6 text-sm text-neutral-500">
+            !error ? (
+              <div className="mt-6 border border-dashed border-white/15 px-5 py-10 text-center text-sm text-white/30">
                 No Spotify results found.
-              </p>
-            )}
+              </div>
+            ) : null}
+          </div>
         </section>
       </div>
     </main>

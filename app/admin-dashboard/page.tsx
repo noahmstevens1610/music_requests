@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type RequestItem = {
   id: string;
@@ -16,303 +15,22 @@ type RequestItem = {
   request_type: "swing" | "line_dance";
 };
 
-type SpotifyQueueTrack = {
-  id: string;
-  uri: string;
-  name: string;
-  artist: string;
-  album: string | null;
-  image: string | null;
-};
-
-type SongCategory =
-  | "line_dance"
-  | "swing_song"
-  | "special";
-
-type SongMetadata = {
-  spotify_track_id: string;
-  track_name: string;
-  artist_name: string;
-  spotify_uri: string | null;
-  album_name: string | null;
-  album_image: string | null;
-  category: SongCategory;
-  choreography: string | null;
-  also_known_as: string | null;
-  is_song_swap: boolean;
-  original_spotify_track_id: string | null;
-};
-
-type MetadataForm = {
-  category: SongCategory;
-  choreography: string;
-  alsoKnownAs: string;
-  isSongSwap: boolean;
-  originalSpotifyTrackId: string;
-};
-
-const emptyMetadataForm: MetadataForm = {
-  category: "line_dance",
-  choreography: "",
-  alsoKnownAs: "",
-  isSongSwap: false,
-  originalSpotifyTrackId: "",
-};
-
-function formatCategory(category: SongCategory) {
-  if (category === "line_dance") {
-    return "Line Dance";
-  }
-
-  if (category === "swing_song") {
-    return "Swing Song";
-  }
-
-  return "Special";
-}
-
 export default function AdminPage() {
   const slug = "big-iron";
 
   const [requests, setRequests] = useState<RequestItem[]>([]);
-  const [spotifyQueue, setSpotifyQueue] = useState<SpotifyQueueTrack[]>([]);
-  const [nowPlaying, setNowPlaying] = useState<SpotifyQueueTrack | null>(null);
-  const [spotifyQueueLoading, setSpotifyQueueLoading] = useState(true);
-  const [metadata, setMetadata] = useState<
-    Record<string, SongMetadata | null>
-  >({});
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-
-  const [queueingId, setQueueingId] =
-    useState<string | null>(null);
-
-  const [changingCategoryId, setChangingCategoryId] =
-    useState<string | null>(null);
-
-  const [editingTrackId, setEditingTrackId] =
-    useState<string | null>(null);
-
-  const [loadingMetadataId, setLoadingMetadataId] =
-    useState<string | null>(null);
-
-  const [savingMetadataId, setSavingMetadataId] =
-    useState<string | null>(null);
-
-  const [metadataForm, setMetadataForm] =
-    useState<MetadataForm>(emptyMetadataForm);
-
-  const loadedMetadataIds = useRef<Set<string>>(
-    new Set()
-  );
-
-  const defaultedQueueTrackIds = useRef<Set<string>>(
-    new Set()
-  );
-
-  async function loadSongMetadata(
-    spotifyTrackId: string
-  ) {
-    try {
-      const response = await fetch(
-        `/api/admin/song-metadata?spotifyTrackId=${encodeURIComponent(
-          spotifyTrackId
-        )}`,
-        {
-          cache: "no-store",
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ??
-            "Unable to load song details."
-        );
-      }
-
-      const songMetadata =
-        (data.songMetadata as SongMetadata | null) ??
-        null;
-
-      setMetadata((current) => ({
-        ...current,
-        [spotifyTrackId]: songMetadata,
-      }));
-
-      loadedMetadataIds.current.add(
-        spotifyTrackId
-      );
-
-      return songMetadata;
-    } catch (error) {
-      loadedMetadataIds.current.delete(
-        spotifyTrackId
-      );
-
-      throw error;
-    }
-  }
-
-  async function loadMissingMetadata(
-    requestItems: RequestItem[]
-  ) {
-    const trackIds = Array.from(
-      new Set(
-        requestItems.map(
-          (request) =>
-            request.spotify_track_id
-        )
-      )
-    );
-
-    const missingTrackIds = trackIds.filter(
-      (trackId) =>
-        !loadedMetadataIds.current.has(trackId)
-    );
-
-    missingTrackIds.forEach((trackId) => {
-      loadedMetadataIds.current.add(trackId);
-    });
-
-    await Promise.all(
-      missingTrackIds.map(async (trackId) => {
-        try {
-          await loadSongMetadata(trackId);
-        } catch (error) {
-          console.error(
-            `Unable to load metadata for ${trackId}:`,
-            error
-          );
-        }
-      })
-    );
-  }
-
-  async function loadSpotifyQueue() {
-    try {
-      const response = await fetch(
-        "/api/admin/spotify-queue",
-        { cache: "no-store" }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ?? "Unable to load Spotify queue."
-        );
-      }
-
-      const queueTracks: SpotifyQueueTrack[] =
-        data.queue ?? [];
-
-      setNowPlaying(data.currentlyPlaying ?? null);
-      setSpotifyQueue(queueTracks);
-
-      const queueTrackIds = Array.from(
-        new Set(
-          [
-            ...(data.currentlyPlaying
-              ? [data.currentlyPlaying.id]
-              : []),
-            ...queueTracks.map((track) => track.id),
-          ].filter(Boolean)
-        )
-      );
-
-      const missingQueueTrackIds =
-        queueTrackIds.filter(
-          (trackId) =>
-            !loadedMetadataIds.current.has(trackId)
-        );
-
-      missingQueueTrackIds.forEach((trackId) => {
-        loadedMetadataIds.current.add(trackId);
-      });
-
-      await Promise.all(
-        missingQueueTrackIds.map(async (trackId) => {
-          try {
-            await loadSongMetadata(trackId);
-          } catch (error) {
-            console.error(
-              `Unable to load queue metadata for ${trackId}:`,
-              error
-            );
-          }
-        })
-      );
-
-      await Promise.all(
-        queueTracks.map(async (track) => {
-          if (
-            defaultedQueueTrackIds.current.has(track.id)
-          ) {
-            return;
-          }
-
-          const loadedMetadata =
-            metadata[track.id] ??
-            (await loadSongMetadata(track.id).catch(
-              () => null
-            ));
-
-          if (loadedMetadata) {
-            defaultedQueueTrackIds.current.add(track.id);
-            return;
-          }
-
-          const matchingRequest = requests.find(
-            (request) =>
-              request.spotify_track_id === track.id &&
-              request.status !== "played" &&
-              request.status !== "removed"
-          );
-
-          const defaultCategory:
-            | "swing_song"
-            | "line_dance" =
-            matchingRequest?.request_type ===
-            "line_dance"
-              ? "line_dance"
-              : "swing_song";
-
-          try {
-            await saveQueuedTrackCategory(
-              track,
-              defaultCategory,
-              false
-            );
-
-            defaultedQueueTrackIds.current.add(track.id);
-          } catch (error) {
-            console.error(
-              `Unable to save default category for ${track.id}:`,
-              error
-            );
-          }
-        })
-      );
-    } catch (error) {
-      console.error("Unable to load Spotify queue:", error);
-    } finally {
-      setSpotifyQueueLoading(false);
-    }
-  }
+  const [queueingId, setQueueingId] = useState<string | null>(null);
+  const [queueCollapsed, setQueueCollapsed] = useState(false);
 
   async function loadRequests() {
     try {
       setError("");
 
       const response = await fetch(
-        `/api/requests?event=${encodeURIComponent(
-          slug
-        )}`,
+        `/api/requests?event=${encodeURIComponent(slug)}`,
         {
           cache: "no-store",
         }
@@ -322,8 +40,7 @@ export default function AdminPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error ??
-            "Unable to load requests."
+          data.error ?? "Unable to load requests."
         );
       }
 
@@ -333,17 +50,14 @@ export default function AdminPage() {
       ];
 
       combined.sort(
-        (a, b) =>
-          Number(b.votes) -
-          Number(a.votes)
+        (a, b) => Number(b.votes) - Number(a.votes)
       );
 
       setRequests(combined);
-      void loadMissingMetadata(combined);
-    } catch (error) {
+    } catch (loadError) {
       setError(
-        error instanceof Error
-          ? error.message
+        loadError instanceof Error
+          ? loadError.message
           : "Unable to load requests."
       );
     } finally {
@@ -351,9 +65,7 @@ export default function AdminPage() {
     }
   }
 
-  async function addToPlaylist(
-    requestId: string
-  ) {
+  async function addToPlaylist(requestId: string) {
     try {
       setError("");
       setMessage("");
@@ -364,8 +76,7 @@ export default function AdminPage() {
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             requestId,
@@ -378,7 +89,7 @@ export default function AdminPage() {
       if (!response.ok) {
         throw new Error(
           data.error ??
-            "Unable to add song to the Spotify playlist."
+            "Unable to add song to playlist."
         );
       }
 
@@ -390,108 +101,15 @@ export default function AdminPage() {
         )
       );
 
-      setMessage(
-        "Song added to the Spotify playlist."
-      );
-    } catch (error) {
+      setMessage("Song added to the running queue.");
+    } catch (queueError) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to add song to the Spotify playlist."
+        queueError instanceof Error
+          ? queueError.message
+          : "Unable to add song to playlist."
       );
     } finally {
       setQueueingId(null);
-    }
-  }
-
-  async function saveQueuedTrackCategory(
-    track: SpotifyQueueTrack,
-    category: "swing_song" | "line_dance",
-    showMessage = true
-  ) {
-    const existingMetadata =
-      metadata[track.id] ?? null;
-
-    const response = await fetch(
-      "/api/admin/song-metadata",
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          spotifyTrackId: track.id,
-          trackName: track.name,
-          artistName: track.artist,
-          spotifyUri: track.uri,
-          albumName: track.album,
-          albumImage: track.image,
-          category,
-          choreography:
-            existingMetadata?.choreography ?? "",
-          alsoKnownAs:
-            existingMetadata?.also_known_as ?? "",
-          isSongSwap:
-            existingMetadata?.is_song_swap ?? false,
-          originalSpotifyTrackId:
-            existingMetadata?.original_spotify_track_id ??
-            null,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.error ??
-          "Unable to change the queued song category."
-      );
-    }
-
-    const savedMetadata =
-      data.songMetadata as SongMetadata;
-
-    setMetadata((current) => ({
-      ...current,
-      [track.id]: savedMetadata,
-    }));
-
-    loadedMetadataIds.current.add(track.id);
-
-    if (showMessage) {
-      setMessage(
-        category === "line_dance"
-          ? "Queued song changed to Line Dance."
-          : "Queued song changed to Swing Song."
-      );
-    }
-
-    return savedMetadata;
-  }
-
-  async function updateQueuedTrackCategory(
-    track: SpotifyQueueTrack,
-    category: "swing_song" | "line_dance"
-  ) {
-    try {
-      setError("");
-      setMessage("");
-      setChangingCategoryId(track.id);
-
-      await saveQueuedTrackCategory(
-        track,
-        category,
-        true
-      );
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to change the queued song category."
-      );
-    } finally {
-      setChangingCategoryId(null);
     }
   }
 
@@ -508,8 +126,7 @@ export default function AdminPage() {
         {
           method: "PATCH",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             requestId,
@@ -522,15 +139,13 @@ export default function AdminPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.error ??
-            "Unable to update request."
+          data.error ?? "Unable to update request."
         );
       }
 
       setRequests((currentRequests) =>
         currentRequests.filter(
-          (request) =>
-            request.id !== requestId
+          (request) => request.id !== requestId
         )
       );
 
@@ -539,162 +154,12 @@ export default function AdminPage() {
           ? "Song marked as played."
           : "Song removed."
       );
-    } catch (error) {
+    } catch (statusError) {
       setError(
-        error instanceof Error
-          ? error.message
+        statusError instanceof Error
+          ? statusError.message
           : "Unable to update request."
       );
-    }
-  }
-
-  async function beginEditing(
-    request: RequestItem
-  ) {
-    try {
-      setError("");
-      setMessage("");
-      setEditingTrackId(
-        request.spotify_track_id
-      );
-      setLoadingMetadataId(
-        request.spotify_track_id
-      );
-
-      let songMetadata =
-        metadata[request.spotify_track_id];
-
-      if (
-        songMetadata === undefined ||
-        !loadedMetadataIds.current.has(
-          request.spotify_track_id
-        )
-      ) {
-        songMetadata =
-          await loadSongMetadata(
-            request.spotify_track_id
-          );
-      }
-
-      setMetadataForm({
-        category:
-          songMetadata?.category ??
-          (request.request_type ===
-          "line_dance"
-            ? "line_dance"
-            : "swing_song"),
-
-        choreography:
-          songMetadata?.choreography ?? "",
-
-        alsoKnownAs:
-          songMetadata?.also_known_as ?? "",
-
-        isSongSwap:
-          songMetadata?.is_song_swap ?? false,
-
-        originalSpotifyTrackId:
-          songMetadata?.original_spotify_track_id ??
-          "",
-      });
-    } catch (error) {
-      setEditingTrackId(null);
-
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load song details."
-      );
-    } finally {
-      setLoadingMetadataId(null);
-    }
-  }
-
-  function cancelEditing() {
-    setEditingTrackId(null);
-    setMetadataForm(emptyMetadataForm);
-  }
-
-  async function saveSongMetadata(
-    request: RequestItem
-  ) {
-    try {
-      setError("");
-      setMessage("");
-      setSavingMetadataId(
-        request.spotify_track_id
-      );
-
-      const response = await fetch(
-        "/api/admin/song-metadata",
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            spotifyTrackId:
-              request.spotify_track_id,
-            trackName: request.track_name,
-            artistName: request.artist_name,
-            spotifyUri: request.spotify_uri,
-            albumName: request.album_name,
-            albumImage: request.album_image,
-
-            category:
-              metadataForm.category,
-
-            choreography:
-              metadataForm.choreography,
-
-            alsoKnownAs:
-              metadataForm.alsoKnownAs,
-
-            isSongSwap:
-              metadataForm.isSongSwap,
-
-            originalSpotifyTrackId:
-              metadataForm.isSongSwap
-                ? metadataForm.originalSpotifyTrackId
-                : null,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error ??
-            "Unable to save song details."
-        );
-      }
-
-      const savedMetadata =
-        data.songMetadata as SongMetadata;
-
-      setMetadata((current) => ({
-        ...current,
-        [request.spotify_track_id]:
-          savedMetadata,
-      }));
-
-      loadedMetadataIds.current.add(
-        request.spotify_track_id
-      );
-
-      setEditingTrackId(null);
-      setMetadataForm(emptyMetadataForm);
-      setMessage("Song details saved.");
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to save song details."
-      );
-    } finally {
-      setSavingMetadataId(null);
     }
   }
 
@@ -707,24 +172,14 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (!slug) {
-      return;
-    }
-
     void loadRequests();
-    void loadSpotifyQueue();
 
-    const interval = window.setInterval(
-      () => {
-        void loadRequests();
-        void loadSpotifyQueue();
-      },
-      3000
-    );
+    const interval = window.setInterval(() => {
+      void loadRequests();
+    }, 3000);
 
-    return () =>
-      window.clearInterval(interval);
-  }, [slug]);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const visibleRequests = requests.filter(
     (request) =>
@@ -732,627 +187,294 @@ export default function AdminPage() {
       request.status !== "removed"
   );
 
+  const runningQueue = visibleRequests.filter(
+    (request) => request.status === "added"
+  );
+
   const pendingRequests = visibleRequests.filter(
     (request) => request.status !== "added"
   );
 
-  const swingRequests =
-    pendingRequests
-      .filter(
-        (request) =>
-          request.request_type === "swing"
-      )
-      .sort(
-        (a, b) =>
-          Number(b.votes) - Number(a.votes)
-      );
+  const swingRequests = pendingRequests.filter(
+    (request) => request.request_type === "swing"
+  );
 
-  const lineDanceRequests =
-    pendingRequests
-      .filter(
-        (request) =>
-          request.request_type ===
-          "line_dance"
-      )
-      .sort(
-        (a, b) =>
-          Number(b.votes) - Number(a.votes)
-      );
+  const lineDanceRequests = pendingRequests.filter(
+    (request) =>
+      request.request_type === "line_dance"
+  );
 
   function RequestCard({
     request,
+    queued = false,
+    queuePosition,
   }: {
     request: RequestItem;
+    queued?: boolean;
+    queuePosition?: number;
   }) {
-    const isQueueing =
-      queueingId === request.id;
-
-    const isEditing =
-      editingTrackId ===
-      request.spotify_track_id;
-
-    const isLoadingMetadata =
-      loadingMetadataId ===
-      request.spotify_track_id;
-
-    const isSavingMetadata =
-      savingMetadataId ===
-      request.spotify_track_id;
-
-    const songMetadata =
-      metadata[request.spotify_track_id];
+    const isQueueing = queueingId === request.id;
 
     return (
-      <div className="rounded-xl border border-neutral-800 p-3">
-        <div className="flex flex-col gap-3">
-          <div className="flex min-w-0 items-start gap-3">
-            {request.album_image ? (
-              <img
-                src={request.album_image}
-                alt={`${request.track_name} album artwork`}
-                className="h-14 w-14 flex-none rounded-lg object-cover"
-              />
-            ) : (
-              <div className="flex h-14 w-14 flex-none items-center justify-center rounded-lg bg-neutral-900 text-xs text-neutral-500">
-                No artwork
-              </div>
-            )}
+      <article className="group grid grid-cols-[56px_64px_minmax(0,1fr)] items-center gap-3 border-b border-white/15 px-1 py-5 transition duration-200 last:border-b-0 hover:bg-white/[0.025] sm:grid-cols-[68px_82px_minmax(0,1fr)_auto] sm:gap-5 sm:px-3">
+        <div className="flex shrink-0 flex-col items-center justify-center">
+          <span className="font-heading grid h-11 w-11 place-items-center rounded-full bg-[#c4202f] text-2xl leading-none text-white sm:h-13 sm:w-13 sm:text-3xl">
+            {request.votes}
+          </span>
+          <span className="font-heading mt-2 text-[10px] uppercase tracking-[0.12em] text-white/40 sm:text-xs">
+            {request.votes === 1 ? "Vote" : "Votes"}
+          </span>
+        </div>
 
-            <div className="min-w-0">
-              <h3 className="truncate text-sm font-bold text-white">
-                {request.track_name}
-              </h3>
-
-              <p className="truncate text-xs text-neutral-400">
-                {request.artist_name}
-              </p>
-
-              {request.album_name && (
-                <p className="truncate text-xs text-neutral-600">
-                  {request.album_name}
-                </p>
-              )}
-
-              <p className="mt-2 text-sm font-bold text-[#ff7b86]">
-                {request.votes}{" "}
-                {request.votes === 1
-                  ? "vote"
-                  : "votes"}
-              </p>
-
-              {songMetadata && (
-                <div className="mt-3 space-y-1 text-sm">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-neutral-800 px-3 py-1 font-semibold text-neutral-200">
-                      {formatCategory(
-                        songMetadata.category
-                      )}
-                    </span>
-
-                    <span className="rounded-full bg-neutral-800 px-3 py-1 font-semibold text-neutral-200">
-                      {songMetadata.is_song_swap
-                        ? "Song Swap"
-                        : "Original Song"}
-                    </span>
-                  </div>
-
-                  {songMetadata.choreography && (
-                    <p className="pt-1 text-neutral-300">
-                      <span className="font-semibold text-white">
-                        Choreo:
-                      </span>{" "}
-                      {
-                        songMetadata.choreography
-                      }
-                    </p>
-                  )}
-
-                  {songMetadata.also_known_as && (
-                    <p className="text-neutral-300">
-                      <span className="font-semibold text-white">
-                        Also Known As:
-                      </span>{" "}
-                      {
-                        songMetadata.also_known_as
-                      }
-                    </p>
-                  )}
-
-                  {songMetadata.is_song_swap &&
-                    songMetadata.original_spotify_track_id && (
-                      <p className="break-all text-neutral-400">
-                        <span className="font-semibold text-white">
-                          Original track ID:
-                        </span>{" "}
-                        {
-                          songMetadata.original_spotify_track_id
-                        }
-                      </p>
-                    )}
-                </div>
-              )}
-
-              {request.status === "added" && (
-                <div className="mt-2 inline-block rounded-full bg-green-700 px-3 py-1 text-sm">
-                  Added to Playlist
-                </div>
-              )}
-            </div>
+        {request.album_image ? (
+          <img
+            src={request.album_image}
+            alt={`${request.track_name} album artwork`}
+            className="aspect-square h-16 w-16 shrink-0 border border-white/10 object-cover sm:h-20 sm:w-20"
+          />
+        ) : (
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center border border-white/10 bg-[#111] text-xl text-white/25 sm:h-20 sm:w-20">
+            ♪
           </div>
+        )}
 
-          <div className="flex flex-wrap gap-2">
-            {(
-              <button
-                type="button"
-                disabled={isQueueing}
-                onClick={() =>
-                  addToPlaylist(request.id)
-                }
-                className="rounded-xl bg-blue-600 px-4 py-3 font-semibold hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isQueueing
-                  ? "Adding..."
-                  : "Add to Queue"}
-              </button>
-            )}
+        <div className="min-w-0">
+          <h3 className="truncate text-base font-black text-white sm:text-xl">
+            {request.track_name}
+          </h3>
 
-            {songMetadata && (
-              <button
-                type="button"
-                disabled={isLoadingMetadata}
-                onClick={() =>
-                  beginEditing(request)
-                }
-                className="rounded-xl border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLoadingMetadata
-                  ? "Loading..."
-                  : "Edit Details"}
-              </button>
-            )}
+          <p className="mt-1 truncate text-sm text-white/55 sm:text-base">
+            {request.artist_name}
+          </p>
 
+          {request.album_name ? (
+            <p className="mt-1 truncate text-xs text-white/30 sm:text-sm">
+              {request.album_name}
+            </p>
+          ) : null}
+
+          {queued && queuePosition ? (
+            <p className="font-heading mt-2 text-sm uppercase tracking-[0.1em] text-[#c4202f] sm:text-base">
+              Queue Position {queuePosition}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="col-span-3 flex items-center justify-end gap-2 pt-1 sm:col-span-1 sm:pt-0">
+          {!queued ? (
+            <button
+              type="button"
+              disabled={isQueueing}
+              onClick={() => addToPlaylist(request.id)}
+              aria-label={`Add ${request.track_name} to queue`}
+              title="Add to Queue"
+              className="grid h-11 w-11 place-items-center rounded-md border-2 border-[#c4202f] bg-transparent text-3xl font-light leading-none text-white transition hover:bg-[#c4202f] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:w-12"
+            >
+              {isQueueing ? (
+                <span className="text-sm">•••</span>
+              ) : (
+                <span aria-hidden="true">+</span>
+              )}
+            </button>
+          ) : null}
+
+          {queued ? (
             <button
               type="button"
               onClick={() =>
-                updateStatus(
-                  request.id,
-                  "removed"
-                )
+                updateStatus(request.id, "played")
               }
-              className="rounded-xl bg-red-600 px-4 py-3 font-semibold hover:bg-red-500"
+              className="font-heading h-11 rounded-md border-2 border-[#c4202f] bg-[#c4202f] px-4 text-base uppercase tracking-[0.06em] text-white transition hover:bg-[#df2939] active:scale-95 sm:h-12 sm:px-5 sm:text-lg"
             >
-              Remove
+              Played
             </button>
-          </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() =>
+              updateStatus(request.id, "removed")
+            }
+            aria-label={`Remove ${request.track_name}`}
+            title="Remove"
+            className="grid h-11 w-11 place-items-center rounded-md border-2 border-white/25 bg-transparent text-2xl font-bold leading-none text-white/70 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white active:scale-95 sm:h-12 sm:w-12"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
         </div>
-
-        {isEditing && (
-          <div className="mt-5 border-t border-neutral-800 pt-5">
-            <h4 className="mb-4 text-lg font-bold">
-              Song Details
-            </h4>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-neutral-300">
-                  Category
-                </span>
-
-                <select
-                  value={
-                    metadataForm.category
-                  }
-                  onChange={(event) =>
-                    setMetadataForm(
-                      (current) => ({
-                        ...current,
-                        category:
-                          event.target
-                            .value as SongCategory,
-                      })
-                    )
-                  }
-                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white"
-                >
-                  <option value="line_dance">
-                    Line Dance
-                  </option>
-
-                  <option value="swing_song">
-                    Swing Song
-                  </option>
-
-                  <option value="special">
-                    Special
-                  </option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-neutral-300">
-                  Song Version
-                </span>
-
-                <select
-                  value={
-                    metadataForm.isSongSwap
-                      ? "song_swap"
-                      : "original"
-                  }
-                  onChange={(event) =>
-                    setMetadataForm(
-                      (current) => ({
-                        ...current,
-                        isSongSwap:
-                          event.target.value ===
-                          "song_swap",
-
-                        originalSpotifyTrackId:
-                          event.target.value ===
-                          "song_swap"
-                            ? current.originalSpotifyTrackId
-                            : "",
-                      })
-                    )
-                  }
-                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white"
-                >
-                  <option value="original">
-                    Original Song
-                  </option>
-
-                  <option value="song_swap">
-                    Song Swap
-                  </option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-neutral-300">
-                  Choreo
-                </span>
-
-                <input
-                  type="text"
-                  value={
-                    metadataForm.choreography
-                  }
-                  onChange={(event) =>
-                    setMetadataForm(
-                      (current) => ({
-                        ...current,
-                        choreography:
-                          event.target.value,
-                      })
-                    )
-                  }
-                  placeholder="Name of choreography"
-                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white placeholder:text-neutral-600"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-neutral-300">
-                  Also Known As
-                </span>
-
-                <input
-                  type="text"
-                  value={
-                    metadataForm.alsoKnownAs
-                  }
-                  onChange={(event) =>
-                    setMetadataForm(
-                      (current) => ({
-                        ...current,
-                        alsoKnownAs:
-                          event.target.value,
-                      })
-                    )
-                  }
-                  placeholder="Alternate dance name"
-                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white placeholder:text-neutral-600"
-                />
-              </label>
-            </div>
-
-            {metadataForm.isSongSwap && (
-              <label className="mt-4 block">
-                <span className="mb-2 block text-sm font-semibold text-neutral-300">
-                  Original Song Spotify Track ID
-                </span>
-
-                <input
-                  type="text"
-                  value={
-                    metadataForm.originalSpotifyTrackId
-                  }
-                  onChange={(event) =>
-                    setMetadataForm(
-                      (current) => ({
-                        ...current,
-                        originalSpotifyTrackId:
-                          event.target.value,
-                      })
-                    )
-                  }
-                  placeholder="Optional Spotify track ID"
-                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white placeholder:text-neutral-600"
-                />
-
-                <p className="mt-2 text-xs text-neutral-500">
-                  This can be left blank for
-                  now.
-                </p>
-              </label>
-            )}
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={isSavingMetadata}
-                onClick={() =>
-                  saveSongMetadata(request)
-                }
-                className="rounded-xl bg-green-600 px-4 py-3 font-semibold hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSavingMetadata
-                  ? "Saving..."
-                  : "Save Details"}
-              </button>
-
-              <button
-                type="button"
-                disabled={isSavingMetadata}
-                onClick={cancelEditing}
-                className="rounded-xl border border-neutral-700 px-4 py-3 font-semibold hover:bg-neutral-800 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      </article>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black p-4 text-white sm:p-8">
-      <header className="mb-8 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold">
-            DJ Dashboard
-          </h1>
+    <main className="relative min-h-screen overflow-hidden bg-black px-4 pb-10 pt-8 text-white sm:px-6 sm:pb-14 sm:pt-10">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.20),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_30%)]" />
 
-          <p className="mt-2 text-neutral-400">
-            Event: {slug}
-          </p>
-        </div>
+      <div className="relative mx-auto max-w-7xl">
+        <header className="mb-10 flex flex-col gap-5 border-b border-white/15 pb-7 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="font-heading text-sm uppercase tracking-[0.18em] text-[#c4202f]">
+              Live Requests
+            </p>
+            <h1 className="font-heading mt-2 text-5xl uppercase leading-none tracking-[0.035em] text-white sm:text-7xl">
+              DJ Dashboard
+            </h1>
+            <p className="mt-3 text-sm uppercase tracking-[0.14em] text-white/35">
+              Event: {slug}
+            </p>
+          </div>
 
-        <button
-          type="button"
-          onClick={logout}
-          className="rounded-xl border border-neutral-700 px-4 py-2 hover:bg-neutral-800"
-        >
-          Log Out
-        </button>
-      </header>
+          <button
+            type="button"
+            onClick={logout}
+            className="font-heading self-start rounded-md border-2 border-white/20 px-5 py-3 text-base uppercase tracking-[0.08em] text-white/75 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white sm:self-auto"
+          >
+            Log Out
+          </button>
+        </header>
 
-      {error && (
-        <div className="mb-6 rounded-xl border border-red-500/40 bg-red-950/40 p-4 text-red-200">
-          {error}
-        </div>
-      )}
+        {error ? (
+          <div className="mb-6 border-l-4 border-[#c4202f] bg-[#c4202f]/10 px-5 py-4 text-red-100">
+            {error}
+          </div>
+        ) : null}
 
-      {message && (
-        <div className="mb-6 rounded-xl border border-green-500/40 bg-green-950/40 p-4 text-green-200">
-          {message}
-        </div>
-      )}
+        {message ? (
+          <div className="mb-6 border-l-4 border-white/40 bg-white/5 px-5 py-4 text-white/80">
+            {message}
+          </div>
+        ) : null}
 
-      {loading ? (
-        <p>Loading requests...</p>
-      ) : (
-        <div className="grid gap-6 xl:grid-cols-[0.9fr_1fr_1fr]">
-          <section className="h-fit rounded-2xl border border-[#c4202f]/60 bg-[#c4202f]/5 p-4 shadow-2xl xl:sticky xl:top-6">
-            <div className="mb-4 flex items-end justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#ff7b86]">
-                  Spotify
-                </p>
-                <h2 className="mt-1 text-2xl font-bold">
-                  Live Queue
-                </h2>
+        {loading ? (
+          <div className="border-y border-white/15 py-16 text-center">
+            <p className="font-heading text-2xl uppercase tracking-[0.08em] text-white/35">
+              Loading Requests…
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-12">
+            <section className="border border-[#c4202f]/50 bg-[#0d0d0d]">
+              <div
+                className={`flex flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-7 ${
+                  queueCollapsed
+                    ? ""
+                    : "border-b border-white/15"
+                }`}
+              >
+                <div>
+                  <p className="font-heading text-sm uppercase tracking-[0.18em] text-[#c4202f]">
+                    Live
+                  </p>
+                  <h2 className="font-heading mt-1 text-3xl uppercase tracking-[0.04em] text-white sm:text-4xl">
+                    Running Queue
+                  </h2>
+                  <p className="mt-2 text-sm text-white/40">
+                    {runningQueue.length}{" "}
+                    {runningQueue.length === 1
+                      ? "song"
+                      : "songs"}{" "}
+                    queued
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setQueueCollapsed(
+                      (current) => !current
+                    )
+                  }
+                  aria-expanded={!queueCollapsed}
+                  className="font-heading rounded-md border-2 border-[#c4202f] px-4 py-2 text-base uppercase tracking-[0.06em] text-white transition hover:bg-[#c4202f]"
+                >
+                  {queueCollapsed
+                    ? "Show Queue"
+                    : "Hide Queue"}
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => void loadSpotifyQueue()}
-                className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-semibold hover:bg-neutral-800"
-              >
-                Refresh
-              </button>
-            </div>
-
-            {nowPlaying && (
-              <div className="mb-4 rounded-xl border border-white/15 bg-black/50 p-3">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#ff7b86]">
-                  Now Playing
-                </p>
-
-                <div className="flex items-center gap-3">
-                  {nowPlaying.image ? (
-                    <img
-                      src={nowPlaying.image}
-                      alt={`${nowPlaying.name} album artwork`}
-                      className="h-14 w-14 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-neutral-900 text-neutral-500">
-                      ♪
-                    </div>
+              {!queueCollapsed ? (
+                <div className="px-3 sm:px-5">
+                  {runningQueue.map(
+                    (request, index) => (
+                      <RequestCard
+                        key={request.id}
+                        request={request}
+                        queued
+                        queuePosition={index + 1}
+                      />
+                    )
                   )}
 
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold">
-                      {nowPlaying.name}
+                  {runningQueue.length === 0 ? (
+                    <p className="py-12 text-center text-white/30">
+                      The running queue is empty.
                     </p>
-                    <p className="truncate text-xs text-neutral-400">
-                      {nowPlaying.artist}
-                    </p>
-                  </div>
+                  ) : null}
                 </div>
-              </div>
-            )}
+              ) : null}
+            </section>
 
-            {spotifyQueueLoading ? (
-              <p className="text-sm text-neutral-400">
-                Loading Spotify queue...
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {spotifyQueue.map((track, index) => {
-                  const trackMetadata =
-                    metadata[track.id] ?? null;
+            <div className="grid gap-12 lg:grid-cols-2 lg:gap-10">
+              <section className="min-w-0">
+                <div className="flex items-end justify-between gap-4 border-b-2 border-[#c4202f] pb-4">
+                  <h2 className="font-heading text-3xl uppercase tracking-[0.05em] text-white sm:text-4xl">
+                    Line Dances
+                  </h2>
+                  <span className="font-heading text-lg text-white/35">
+                    {lineDanceRequests.length}
+                  </span>
+                </div>
 
-                  const isChanging =
-                    changingCategoryId === track.id;
+                <div>
+                  {lineDanceRequests.map(
+                    (request) => (
+                      <RequestCard
+                        key={request.id}
+                        request={request}
+                      />
+                    )
+                  )}
 
-                  return (
-                    <article
-                      key={`${track.uri}-${index}`}
-                      className="rounded-xl border border-neutral-800 bg-black/40 p-3"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          {track.image ? (
-                            <img
-                              src={track.image}
-                              alt={`${track.name} album artwork`}
-                              className="h-12 w-12 shrink-0 rounded-lg object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-neutral-500">
-                              ♪
-                            </div>
-                          )}
+                  {lineDanceRequests.length === 0 ? (
+                    <p className="py-12 text-center text-white/30">
+                      No line dance requests.
+                    </p>
+                  ) : null}
+                </div>
+              </section>
 
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold">
-                              {track.name}
-                            </p>
-                            <p className="truncate text-xs text-neutral-400">
-                              {track.artist}
-                            </p>
-                          </div>
-                        </div>
+              <section className="min-w-0">
+                <div className="flex items-end justify-between gap-4 border-b-2 border-[#c4202f] pb-4">
+                  <h2 className="font-heading text-3xl uppercase tracking-[0.05em] text-white sm:text-4xl">
+                    Swing Songs
+                  </h2>
+                  <span className="font-heading text-lg text-white/35">
+                    {swingRequests.length}
+                  </span>
+                </div>
 
-                        <div className="shrink-0">
-                          <div className="relative grid grid-cols-2 rounded-full border border-neutral-700 bg-neutral-950 p-1">
-                            <span
-                              className={`absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-full bg-[#c4202f] transition-transform duration-200 ${
-                                trackMetadata?.category === "line_dance"
-                                  ? "translate-x-full"
-                                  : "translate-x-0"
-                              }`}
-                            />
+                <div>
+                  {swingRequests.map(
+                    (request) => (
+                      <RequestCard
+                        key={request.id}
+                        request={request}
+                      />
+                    )
+                  )}
 
-                            <button
-                              type="button"
-                              disabled={isChanging}
-                              onClick={() =>
-                                updateQueuedTrackCategory(
-                                  track,
-                                  "swing_song"
-                                )
-                              }
-                              className="relative z-10 min-w-16 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white disabled:opacity-50"
-                            >
-                              Swing
-                            </button>
-
-                            <button
-                              type="button"
-                              disabled={isChanging}
-                              onClick={() =>
-                                updateQueuedTrackCategory(
-                                  track,
-                                  "line_dance"
-                                )
-                              }
-                              className="relative z-10 min-w-16 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white disabled:opacity-50"
-                            >
-                              Line
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-
-                {spotifyQueue.length === 0 && (
-                  <p className="rounded-xl border border-dashed border-neutral-700 p-6 text-center text-sm text-neutral-500">
-                    Spotify has no queued songs.
-                  </p>
-                )}
-              </div>
-            )}
-          </section>
-
-          <section className="min-w-0">
-            <div className="mb-4 flex items-end justify-between border-b border-white/15 pb-3">
-              <h2 className="text-2xl font-bold">
-                Line Dances
-              </h2>
-              <span className="text-sm text-neutral-500">
-                Sorted by votes
-              </span>
+                  {swingRequests.length === 0 ? (
+                    <p className="py-12 text-center text-white/30">
+                      No swing requests.
+                    </p>
+                  ) : null}
+                </div>
+              </section>
             </div>
-
-            <div className="space-y-3">
-              {lineDanceRequests.map((request) => (
-                <RequestCard
-                  key={request.id}
-                  request={request}
-                />
-              ))}
-
-              {lineDanceRequests.length === 0 && (
-                <p className="text-neutral-500">
-                  No line dance requests.
-                </p>
-              )}
-            </div>
-          </section>
-
-          <section className="min-w-0">
-            <div className="mb-4 flex items-end justify-between border-b border-white/15 pb-3">
-              <h2 className="text-2xl font-bold">
-                Swing Songs
-              </h2>
-              <span className="text-sm text-neutral-500">
-                Sorted by votes
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {swingRequests.map((request) => (
-                <RequestCard
-                  key={request.id}
-                  request={request}
-                />
-              ))}
-
-              {swingRequests.length === 0 && (
-                <p className="text-neutral-500">
-                  No swing requests.
-                </p>
-              )}
-            </div>
-          </section>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </main>
   );
 }
