@@ -11,7 +11,6 @@ type BoxVisibility = {
   queue: boolean;
   photo: boolean;
   qr: boolean;
-  video: boolean;
 };
 
 type LineDanceInfo = {
@@ -172,25 +171,236 @@ function QueueItem({
   );
 }
 
-function PlaceholderPanel({
-  label,
-  large = false,
-}: {
-  label: string;
-  large?: boolean;
-}) {
-  return (
-    <div className="flex h-full min-h-0 items-center justify-center border border-[#c4202f]/45 bg-[#0c0c0c]">
-      <div className="text-center">
-        <p
-          className={`font-heading uppercase tracking-[0.1em] text-white/30 ${
-            large ? "text-5xl" : "text-3xl"
-          }`}
-        >
-          {label}
-        </p>
-        <div className="mx-auto mt-4 h-px w-24 bg-[#c4202f]/50" />
+type PhotoItem = {
+  src: string;
+  source: "house" | "submitted";
+};
+
+type ApprovedGuestPhoto = {
+  id: string;
+  imageUrl: string;
+  createdAt: string;
+};
+
+type ApprovedPhotosResponse = {
+  photos?: ApprovedGuestPhoto[];
+  error?: string;
+};
+
+const PHOTO_EVENT_SLUG = "big-iron";
+const PHOTO_REFRESH_MS = 5000;
+
+// Photos that YOU add.
+// Put the files in public/photos and list their public paths here.
+const HOUSE_PHOTOS: string[] = [
+  // "/photos/dance-1.jpg",
+  // "/photos/dance-2.jpg",
+  // "/photos/dance-3.jpg",
+];
+
+function shufflePhotos(items: string[]) {
+  const copy = [...items];
+
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[randomIndex]] = [copy[randomIndex], copy[index]];
+  }
+
+  return copy;
+}
+
+function buildAlternatingPhotoSequence(
+  housePhotos: string[],
+  submittedPhotos: string[]
+): PhotoItem[] {
+  const shuffledHouse = shufflePhotos(housePhotos);
+  const shuffledSubmitted = shufflePhotos(submittedPhotos);
+
+  if (shuffledHouse.length === 0 && shuffledSubmitted.length === 0) {
+    return [];
+  }
+
+  if (shuffledHouse.length === 0) {
+    return shuffledSubmitted.map((src) => ({
+      src,
+      source: "submitted",
+    }));
+  }
+
+  if (shuffledSubmitted.length === 0) {
+    return shuffledHouse.map((src) => ({
+      src,
+      source: "house",
+    }));
+  }
+
+  const sequence: PhotoItem[] = [];
+  const cycleLength = Math.max(
+    shuffledHouse.length,
+    shuffledSubmitted.length
+  );
+
+  for (let index = 0; index < cycleLength; index += 1) {
+    sequence.push({
+      src: shuffledHouse[index % shuffledHouse.length],
+      source: "house",
+    });
+
+    sequence.push({
+      src: shuffledSubmitted[index % shuffledSubmitted.length],
+      source: "submitted",
+    });
+  }
+
+  return sequence;
+}
+
+function PhotoSlideshow() {
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  const fadeTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const submittedSignatureRef = useRef("__uninitialized__");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadApprovedPhotos() {
+      try {
+        const response = await fetch(
+          `/api/photos/approved?event=${encodeURIComponent(
+            PHOTO_EVENT_SLUG
+          )}`,
+          {
+            cache: "no-store",
+          }
+        );
+
+        const data =
+          (await response.json()) as ApprovedPhotosResponse;
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ?? "Unable to load approved photos."
+          );
+        }
+
+        const submittedPhotos = (data.photos ?? [])
+          .map((photo) => photo.imageUrl)
+          .filter(
+            (url): url is string =>
+              typeof url === "string" && url.length > 0
+          );
+
+        const signature = [...submittedPhotos]
+          .sort()
+          .join("|");
+
+        if (
+          cancelled ||
+          signature === submittedSignatureRef.current
+        ) {
+          return;
+        }
+
+        submittedSignatureRef.current = signature;
+
+        setPhotos(
+          buildAlternatingPhotoSequence(
+            HOUSE_PHOTOS,
+            submittedPhotos
+          )
+        );
+        setCurrentIndex(0);
+        setVisible(true);
+      } catch (photoError) {
+        console.error(
+          "Unable to refresh approved guest photos:",
+          photoError
+        );
+
+        if (
+          !cancelled &&
+          submittedSignatureRef.current === "__uninitialized__"
+        ) {
+          setPhotos(
+            buildAlternatingPhotoSequence(
+              HOUSE_PHOTOS,
+              []
+            )
+          );
+        }
+      }
+    }
+
+    void loadApprovedPhotos();
+
+    const refreshInterval = window.setInterval(() => {
+      void loadApprovedPhotos();
+    }, PHOTO_REFRESH_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(refreshInterval);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (photos.length <= 1) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setVisible(false);
+
+      fadeTimeoutRef.current = setTimeout(() => {
+        setCurrentIndex(
+          (current) => (current + 1) % photos.length
+        );
+        setVisible(true);
+      }, 650);
+    }, 7000);
+
+    return () => {
+      window.clearInterval(interval);
+
+      if (fadeTimeoutRef.current) {
+        clearTimeout(fadeTimeoutRef.current);
+      }
+    };
+  }, [photos.length]);
+
+  const currentPhoto = photos[currentIndex] ?? null;
+
+  if (!currentPhoto) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-[#080808] text-center">
+        <div>
+          <p className="font-heading text-5xl uppercase tracking-[0.1em] text-white/25">
+            Photos
+          </p>
+          <div className="mx-auto mt-4 h-px w-24 bg-[#c4202f]/50" />
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-black p-2">
+      <img
+        src={currentPhoto.src}
+        alt={
+          currentPhoto.source === "submitted"
+            ? "Submitted Big Iron photo"
+            : "Big Iron photo"
+        }
+        className={`h-full w-full border border-white/15 bg-black object-contain transition-opacity duration-700 ${
+          visible ? "opacity-100" : "opacity-0"
+        }`}
+      />
     </div>
   );
 }
@@ -221,7 +431,6 @@ export default function NowPlayingPage() {
     queue: true,
     photo: true,
     qr: true,
-    video: true,
   });
 
   const playbackRef = useRef<PlaybackResponse | null>(null);
@@ -498,50 +707,37 @@ export default function NowPlayingPage() {
           ) : <div />}
         </section>
 
-        {/* RIGHT COLUMN */}
-        <section className="grid min-h-0 grid-rows-[39%_minmax(0,1fr)] gap-3">
-          {/* Photo and QR */}
-          <div className="grid min-h-0 grid-cols-[52%_48%] gap-3">
-            {boxVisibility.photo ? <PlaceholderPanel label="Coming Soon" large /> : <div />}
+        {/* RIGHT COLUMN - ACTION BAR + PHOTO WALL */}
+        <section className="grid min-h-0 grid-rows-[18%_minmax(0,1fr)] gap-3">
+          {/* Request / photo submission bar */}
+          <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_170px] overflow-hidden border border-[#c4202f]/45 bg-[#0d0d0d] xl:grid-cols-[minmax(0,1fr)_190px]">
+            <div className="flex min-w-0 items-center justify-center px-6 text-center">
+              <p className="font-heading text-2xl uppercase tracking-[0.1em] text-white xl:text-3xl">
+                Request a Song <span className="mx-3 text-[#c4202f]">•</span> Submit a Photo
+              </p>
+            </div>
 
             {boxVisibility.qr ? (
-            <aside className="flex min-h-0 items-center justify-center border border-[#c4202f]/45 bg-[#0d0d0d] p-4">
-              <div className="flex h-full w-full flex-col items-center justify-center">
-                <p className="font-heading text-2xl uppercase tracking-[0.1em] text-white">
-                  Request a Song
-                </p>
-
-                <div className="mt-3 aspect-square min-h-0 max-h-[72%] w-auto">
+              <aside className="flex min-h-0 items-center justify-center border-l border-[#c4202f]/45 bg-black p-2">
+                <div className="aspect-square w-full max-h-full bg-black p-1.5">
                   <img
                     src="/REQUEST_A_SONG.png"
-                    alt="QR code to request a song"
+                    alt="QR code to request a song and submit a photo"
                     className="h-full w-full object-contain"
                   />
                 </div>
-
-                <p className="font-heading mt-3 text-2xl uppercase tracking-[0.1em] text-white">
-                  Submit a Photo
-                </p>
-              </div>
-            </aside>
-            ) : <div />}
+              </aside>
+            ) : null}
           </div>
 
-          {/* Video */}
-          {boxVisibility.video ? (
-          <div className="relative flex min-h-0 items-center justify-center overflow-hidden border border-[#c4202f]/45 bg-black">
-            <video
-              className="h-full w-full bg-black object-contain"
-              src="/DANCE_LOOP.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-            />
-
+          {/* Photos */}
+          <div className="relative min-h-0 overflow-hidden border border-[#c4202f]/45 bg-black">
+            {boxVisibility.photo ? (
+              <PhotoSlideshow />
+            ) : (
+              <div className="h-full w-full bg-black" />
+            )}
           </div>
-          ) : <div />}
         </section>
         </div>
       </div>
@@ -549,14 +745,14 @@ export default function NowPlayingPage() {
       <button
         type="button"
         onClick={() => setSettingsOpen((current) => !current)}
-        className="fixed right-4 top-4 z-40 flex h-11 w-11 items-center justify-center border border-white/20 bg-black/80 text-xl text-white shadow-xl backdrop-blur"
+        className="fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center border border-white/20 bg-black/80 text-xl text-white shadow-xl backdrop-blur"
         aria-label="Display settings"
       >
         ⚙
       </button>
 
       {settingsOpen ? (
-        <aside className="fixed right-4 top-16 z-40 w-72 border border-[#c4202f]/55 bg-[#0d0d0d]/95 p-4 shadow-2xl backdrop-blur">
+        <aside className="fixed bottom-20 right-6 z-40 w-72 border border-[#c4202f]/55 bg-[#0d0d0d]/95 p-4 shadow-2xl backdrop-blur">
           <div className="flex items-center justify-between">
             <h2 className="font-heading text-2xl uppercase tracking-[0.08em]">
               Display Settings
@@ -629,9 +825,8 @@ export default function NowPlayingPage() {
               {([
                 ["nowPlaying", "Now Playing"],
                 ["queue", "Queue"],
-                ["photo", "Photo"],
+                ["photo", "Photo Wall"],
                 ["qr", "QR Code"],
-                ["video", "Video"],
               ] as const).map(([key, label]) => (
                 <button
                   key={key}
@@ -669,7 +864,6 @@ export default function NowPlayingPage() {
                 queue: true,
                 photo: true,
                 qr: true,
-                video: true,
               });
             }}
             className="font-heading mt-5 w-full border border-white/15 bg-white/5 px-4 py-3 text-lg uppercase tracking-[0.08em] text-white"

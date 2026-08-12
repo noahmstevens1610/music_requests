@@ -30,7 +30,7 @@ export default function AdminPage() {
       setError("");
 
       const response = await fetch(
-        `/api/requests?event=${encodeURIComponent(slug)}`,
+        `/api/admin/all-requests?event=${encodeURIComponent(slug)}`,
         {
           cache: "no-store",
         }
@@ -38,16 +38,19 @@ export default function AdminPage() {
 
       const data = await response.json();
 
+      if (response.status === 401) {
+        window.location.href = "/admin-login";
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(
           data.error ?? "Unable to load requests."
         );
       }
 
-      const combined: RequestItem[] = [
-        ...(data.swingRequests ?? []),
-        ...(data.lineDanceRequests ?? []),
-      ];
+      const combined: RequestItem[] =
+        data.requests ?? [];
 
       combined.sort(
         (a, b) => Number(b.votes) - Number(a.votes)
