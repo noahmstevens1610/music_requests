@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
       "id, event_slug, storage_path, image_url, status, device_id, original_filename, mime_type, file_size_bytes, created_at, reviewed_at"
     )
     .eq("event_slug", eventSlug)
+    .not("storage_path", "like", "house/%")
     .order("created_at", { ascending: false });
 
   if (error) {

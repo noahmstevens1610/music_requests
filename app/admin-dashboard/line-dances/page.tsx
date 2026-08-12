@@ -429,7 +429,6 @@ export default function LineDancesPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black px-4 pb-12 pt-8 text-white sm:px-6 sm:pb-16 sm:pt-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.20),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_30%)]" />
 
       <div className="relative mx-auto max-w-7xl">
         <header className="flex flex-col gap-6 border-b border-white/15 pb-7 sm:flex-row sm:items-end sm:justify-between">
@@ -452,7 +451,7 @@ export default function LineDancesPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="font-heading rounded-md border-2 border-white/20 px-5 py-3 text-base uppercase tracking-[0.07em] text-white/70 transition hover:border-white/40 hover:bg-white/5 hover:text-white"
+              className="font-heading  border-2 border-white/20 px-5 py-3 text-base uppercase tracking-[0.07em] text-white/70 transition hover:border-white/40 hover:bg-white/5 hover:text-white"
             >
               Back
             </button>
@@ -460,7 +459,7 @@ export default function LineDancesPage() {
             <button
               type="button"
               onClick={logout}
-              className="font-heading rounded-md border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f]"
+              className="font-heading  border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f]"
             >
               Log Out
             </button>
@@ -542,7 +541,7 @@ export default function LineDancesPage() {
               <button
                 type="submit"
                 disabled={saving || !name.trim()}
-                className="font-heading rounded-md border-2 border-[#c4202f] bg-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#df2939] disabled:cursor-not-allowed disabled:opacity-40"
+                className="font-heading  border-2 border-[#c4202f] bg-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#df2939] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {saving ? "Creating…" : "Create Line Dance"}
               </button>
@@ -571,7 +570,7 @@ export default function LineDancesPage() {
                 type="button"
                 onClick={loadLineDances}
                 disabled={loading}
-                className="font-heading rounded-md border-2 border-white/20 px-4 py-2 text-sm uppercase tracking-[0.07em] text-white/65 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white disabled:opacity-40"
+                className="font-heading  border-2 border-white/20 px-4 py-2 text-sm uppercase tracking-[0.07em] text-white/65 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white disabled:opacity-40"
               >
                 Refresh
               </button>
@@ -596,7 +595,7 @@ export default function LineDancesPage() {
                   type="button"
                   onClick={() => setSearchQuery("")}
                   aria-label="Clear line dance search"
-                  className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-md text-2xl text-white/45 transition hover:bg-[#c4202f] hover:text-white"
+                  className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center  text-2xl text-white/45 transition hover:bg-[#c4202f] hover:text-white"
                 >
                   ×
                 </button>
@@ -664,7 +663,7 @@ export default function LineDancesPage() {
                     key={lineDance.id}
                     className="group grid gap-4 border-b border-white/15 px-1 py-6 transition hover:bg-white/[0.025] sm:grid-cols-[64px_minmax(0,1fr)_auto] sm:items-start sm:gap-5 sm:px-3"
                   >
-                    <div className="font-heading grid h-12 w-12 place-items-center rounded-full bg-[#c4202f] text-2xl text-white">
+                    <div className="font-heading grid h-12 w-12 place-items-center  bg-[#c4202f] text-2xl text-white">
                       {String(index + 1).padStart(
                         2,
                         "0"
@@ -719,7 +718,7 @@ export default function LineDancesPage() {
                       </div>
                     ) : (
                       <div className="min-w-0">
-                        <h3 className="truncate text-xl font-black text-white sm:text-2xl">
+                        <h3 className="font-heading truncate text-xl font-black text-white sm:text-2xl">
                           {lineDance.name}
                         </h3>
 
@@ -774,7 +773,7 @@ export default function LineDancesPage() {
                               isUpdating ||
                               !editName.trim()
                             }
-                            className="font-heading rounded-md border-2 border-[#c4202f] bg-[#c4202f] px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white transition hover:bg-[#df2939] disabled:cursor-not-allowed disabled:opacity-40"
+                            className="font-heading  border-2 border-[#c4202f] bg-[#c4202f] px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white transition hover:bg-[#df2939] disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             {isUpdating
                               ? "Saving…"
@@ -785,7 +784,7 @@ export default function LineDancesPage() {
                             type="button"
                             onClick={cancelEditing}
                             disabled={isUpdating}
-                            className="font-heading rounded-md border-2 border-white/20 px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white/65 transition hover:border-white/40 hover:bg-white/5 hover:text-white disabled:opacity-40"
+                            className="font-heading  border-2 border-white/20 px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white/65 transition hover:border-white/40 hover:bg-white/5 hover:text-white disabled:opacity-40"
                           >
                             Cancel
                           </button>
@@ -800,7 +799,7 @@ export default function LineDancesPage() {
                             disabled={
                               editingId !== null
                             }
-                            className="font-heading rounded-md border-2 border-white/20 px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white/65 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+                            className="font-heading  border-2 border-white/20 px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white/65 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
                           >
                             Edit
                           </button>
@@ -812,7 +811,7 @@ export default function LineDancesPage() {
                                 `/admin-dashboard/line-dances/${lineDance.id}`
                               )
                             }
-                            className="font-heading rounded-md border-2 border-[#c4202f] bg-[#c4202f] px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white transition hover:bg-[#df2939]"
+                            className="font-heading  border-2 border-[#c4202f] bg-[#c4202f] px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white transition hover:bg-[#df2939]"
                           >
                             Manage Songs
                           </button>
@@ -829,7 +828,7 @@ export default function LineDancesPage() {
                             }
                             aria-label={`Remove ${lineDance.name}`}
                             title="Remove"
-                            className="grid h-11 w-11 place-items-center rounded-md border-2 border-white/20 text-2xl font-bold leading-none text-white/65 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                            className="grid h-11 w-11 place-items-center  border-2 border-white/20 text-2xl font-bold leading-none text-white/65 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             {deletingId ===
                             lineDance.id ? (

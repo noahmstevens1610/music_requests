@@ -29,6 +29,7 @@ type LinkedSong = {
   album_name: string | null;
   album_image: string | null;
   is_original_song: boolean;
+  explicit: boolean;
   created_at?: string;
   updated_at?: string;
 };
@@ -40,7 +41,20 @@ type SpotifyTrack = {
   artist: string;
   album: string | null;
   image: string | null;
+  explicit: boolean;
 };
+
+function ExplicitBadge() {
+  return (
+    <span
+      className="inline-flex h-5 min-w-5 items-center justify-center border border-white/35 px-1 text-[10px] font-black leading-none text-white/65"
+      title="Explicit"
+      aria-label="Explicit"
+    >
+      E
+    </span>
+  );
+}
 
 export default function LineDanceSongsPage() {
   const router = useRouter();
@@ -83,6 +97,18 @@ export default function LineDanceSongsPage() {
 
   const [message, setMessage] =
     useState("");
+
+  const [editingDance, setEditingDance] =
+    useState(false);
+
+  const [editName, setEditName] =
+    useState("");
+
+  const [editAlsoKnownAs, setEditAlsoKnownAs] =
+    useState("");
+
+  const [savingDance, setSavingDance] =
+    useState(false);
 
   const handleUnauthorized = useCallback(
     (status: number) => {
@@ -248,6 +274,77 @@ export default function LineDanceSongsPage() {
     searchQuery,
     searchSpotify,
   ]);
+
+  function beginDanceEdit() {
+    if (!lineDance) return;
+
+    setEditName(lineDance.name);
+    setEditAlsoKnownAs(lineDance.also_known_as ?? "");
+    setEditingDance(true);
+    setError("");
+    setMessage("");
+  }
+
+  function cancelDanceEdit() {
+    setEditingDance(false);
+    setEditName("");
+    setEditAlsoKnownAs("");
+  }
+
+  async function saveDanceEdit() {
+    if (!lineDanceId) return;
+
+    const cleanedName = editName.trim();
+
+    if (!cleanedName) {
+      setError("Enter a choreography name.");
+      return;
+    }
+
+    try {
+      setSavingDance(true);
+      setError("");
+      setMessage("");
+
+      const response = await fetch(
+        `/api/admin/line-dances/${lineDanceId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: cleanedName,
+            alsoKnownAs: editAlsoKnownAs,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (handleUnauthorized(response.status)) {
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ?? "Unable to update line dance."
+        );
+      }
+
+      setLineDance(data.lineDance as LineDance);
+      setEditingDance(false);
+      setMessage(`“${data.lineDance.name}” was updated.`);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update line dance."
+      );
+    } finally {
+      setSavingDance(false);
+    }
+  }
 
   async function addSong(
     track: SpotifyTrack
@@ -472,7 +569,6 @@ export default function LineDanceSongsPage() {
   if (loading) {
     return (
       <main className="relative min-h-screen overflow-hidden bg-black px-4 py-8 text-white sm:px-6 sm:py-10">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.20),transparent_36%)]" />
 
         <div className="relative mx-auto max-w-7xl border-y border-white/15 py-16 text-center">
           <p className="font-heading text-2xl uppercase tracking-[0.08em] text-white/35">
@@ -486,7 +582,6 @@ export default function LineDanceSongsPage() {
   if (!lineDance) {
     return (
       <main className="relative min-h-screen overflow-hidden bg-black px-4 py-8 text-white sm:px-6 sm:py-10">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.20),transparent_36%)]" />
 
         <div className="relative mx-auto max-w-7xl">
           <p className="font-heading text-sm uppercase tracking-[0.18em] text-[#c4202f]">
@@ -508,7 +603,7 @@ export default function LineDanceSongsPage() {
             onClick={() =>
               router.push("/admin-dashboard/line-dances")
             }
-            className="font-heading mt-8 rounded-md border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f]"
+            className="font-heading mt-8  border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f]"
           >
             Back to Line Dances
           </button>
@@ -525,7 +620,6 @@ export default function LineDanceSongsPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black px-4 pb-12 pt-8 text-white sm:px-6 sm:pb-16 sm:pt-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.20),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_30%)]" />
 
       <div className="relative mx-auto max-w-7xl">
         <header className="flex flex-col gap-6 border-b border-white/15 pb-7 sm:flex-row sm:items-end sm:justify-between">
@@ -565,8 +659,16 @@ export default function LineDanceSongsPage() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
+              onClick={beginDanceEdit}
+              className="font-heading border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f]"
+            >
+              Edit Dance
+            </button>
+
+            <button
+              type="button"
               onClick={() => void loadDanceAndSongs()}
-              className="font-heading rounded-md border-2 border-white/20 px-5 py-3 text-base uppercase tracking-[0.07em] text-white/70 transition hover:border-white/40 hover:bg-white/5 hover:text-white"
+              className="font-heading  border-2 border-white/20 px-5 py-3 text-base uppercase tracking-[0.07em] text-white/70 transition hover:border-white/40 hover:bg-white/5 hover:text-white"
             >
               Refresh
             </button>
@@ -574,7 +676,7 @@ export default function LineDanceSongsPage() {
             <button
               type="button"
               onClick={logout}
-              className="font-heading rounded-md border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f]"
+              className="font-heading  border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f]"
             >
               Log Out
             </button>
@@ -591,6 +693,63 @@ export default function LineDanceSongsPage() {
           <div className="mt-6 border-l-4 border-white/40 bg-white/5 px-5 py-4 text-white/80">
             {message}
           </div>
+        ) : null}
+
+        {editingDance ? (
+          <section className="mt-6 border border-[#c4202f]/50 bg-[#0d0d0d]">
+            <div className="border-b border-white/15 px-5 py-4 sm:px-7">
+              <p className="font-heading text-xs uppercase tracking-[0.18em] text-[#c4202f]">
+                Edit Choreography
+              </p>
+              <h2 className="font-heading mt-1 text-3xl uppercase tracking-[0.04em] text-white">
+                Dance Details
+              </h2>
+            </div>
+
+            <div className="grid gap-5 p-5 sm:p-7 lg:grid-cols-2">
+              <label className="block">
+                <span className="font-heading mb-2 block text-sm uppercase tracking-[0.08em] text-white/65">
+                  Choreography Name
+                </span>
+                <input
+                  value={editName}
+                  onChange={(event) => setEditName(event.target.value)}
+                  className="w-full border-2 border-white/15 bg-black px-4 py-3 text-white outline-none transition focus:border-[#c4202f]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="font-heading mb-2 block text-sm uppercase tracking-[0.08em] text-white/65">
+                  Also Known As
+                </span>
+                <input
+                  value={editAlsoKnownAs}
+                  onChange={(event) => setEditAlsoKnownAs(event.target.value)}
+                  placeholder="Comma-separated alternate names"
+                  className="w-full border-2 border-white/15 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/20 focus:border-[#c4202f]"
+                />
+              </label>
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-white/15 px-5 py-4 sm:px-7">
+              <button
+                type="button"
+                onClick={cancelDanceEdit}
+                disabled={savingDance}
+                className="font-heading border-2 border-white/20 px-5 py-2.5 text-sm uppercase tracking-[0.07em] text-white/65 transition hover:border-white/40 hover:text-white disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveDanceEdit()}
+                disabled={savingDance}
+                className="font-heading border-2 border-[#c4202f] bg-[#c4202f] px-5 py-2.5 text-sm uppercase tracking-[0.07em] text-white transition hover:bg-transparent disabled:opacity-40"
+              >
+                {savingDance ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </section>
         ) : null}
 
         <section className="mt-10">
@@ -634,7 +793,7 @@ export default function LineDanceSongsPage() {
                   className="group grid gap-4 border-b border-white/15 px-1 py-6 transition hover:bg-white/[0.025] sm:grid-cols-[56px_80px_minmax(0,1fr)_auto] sm:items-center sm:gap-5 sm:px-3"
                 >
                   <div
-                    className={`font-heading grid h-11 w-11 place-items-center rounded-full text-xl text-white ${
+                    className={`font-heading grid h-11 w-11 place-items-center  text-xl text-white ${
                       song.is_original_song
                         ? "bg-[#c4202f]"
                         : "border-2 border-white/20 bg-black"
@@ -650,16 +809,18 @@ export default function LineDanceSongsPage() {
                       className="h-20 w-20 shrink-0 border border-white/10 object-cover"
                     />
                   ) : (
-                    <div className="flex h-20 w-20 shrink-0 items-center justify-center border border-white/10 bg-[#111] text-2xl text-white/25">
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center border border-[#c4202f]/45 bg-[#0d0d0d] text-2xl text-white/25">
                       ♪
                     </div>
                   )}
 
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="truncate text-lg font-black text-white sm:text-xl">
+                      <h3 className="font-heading truncate text-lg font-black text-white sm:text-xl">
                         {song.track_name}
                       </h3>
+
+                      {song.explicit ? <ExplicitBadge /> : null}
 
                       <span
                         className={`font-heading border px-3 py-1.5 text-xs uppercase tracking-[0.07em] ${
@@ -691,7 +852,7 @@ export default function LineDanceSongsPage() {
                         type="button"
                         onClick={() => void makeOriginal(song)}
                         disabled={updatingSongId === song.id}
-                        className="font-heading rounded-md border-2 border-[#c4202f] px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="font-heading  border-2 border-[#c4202f] px-4 py-2.5 text-sm uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f] disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {updatingSongId === song.id
                           ? "Updating…"
@@ -705,7 +866,7 @@ export default function LineDanceSongsPage() {
                       disabled={deletingSongId === song.id}
                       aria-label={`Remove ${song.track_name}`}
                       title="Remove"
-                      className="grid h-11 w-11 place-items-center rounded-md border-2 border-white/20 text-2xl font-bold leading-none text-white/65 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      className="grid h-11 w-11 place-items-center  border-2 border-white/20 text-2xl font-bold leading-none text-white/65 transition hover:border-[#c4202f] hover:bg-[#c4202f] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {deletingSongId === song.id ? (
                         <span className="text-xs">•••</span>
@@ -755,7 +916,7 @@ export default function LineDanceSongsPage() {
                     setError("");
                   }}
                   aria-label="Clear Spotify search"
-                  className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-md text-2xl text-white/45 transition hover:bg-[#c4202f] hover:text-white"
+                  className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center  text-2xl text-white/45 transition hover:bg-[#c4202f] hover:text-white"
                 >
                   ×
                 </button>
@@ -787,15 +948,18 @@ export default function LineDanceSongsPage() {
                           className="h-16 w-16 shrink-0 border border-white/10 object-cover"
                         />
                       ) : (
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center border border-white/10 bg-[#111] text-xl text-white/25">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center border border-[#c4202f]/45 bg-[#0d0d0d] text-xl text-white/25">
                           ♪
                         </div>
                       )}
 
                       <div className="min-w-0">
-                        <h3 className="truncate text-base font-black text-white sm:text-lg">
-                          {track.name}
-                        </h3>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <h3 className="font-heading truncate text-base font-black text-white sm:text-lg">
+                            {track.name}
+                          </h3>
+                          {track.explicit ? <ExplicitBadge /> : null}
+                        </div>
 
                         <p className="mt-1 truncate text-sm text-white/55">
                           {track.artist}
@@ -821,7 +985,7 @@ export default function LineDanceSongsPage() {
                             ? "Already Added"
                             : "Add Song"
                         }
-                        className={`font-heading rounded-md border-2 px-4 py-2.5 text-sm uppercase tracking-[0.07em] transition disabled:cursor-not-allowed ${
+                        className={`font-heading  border-2 px-4 py-2.5 text-sm uppercase tracking-[0.07em] transition disabled:cursor-not-allowed ${
                           alreadyLinked
                             ? "border-white/10 bg-white/5 text-white/25"
                             : "border-[#c4202f] text-white hover:bg-[#c4202f]"

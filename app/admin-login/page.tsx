@@ -61,23 +61,23 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-950 px-4 text-white">
-      <div className="w-full max-w-md rounded-3xl border border-neutral-800 bg-neutral-900 p-6 shadow-2xl">
-        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-neutral-500">
+    <main className="flex min-h-screen items-center justify-center bg-black px-4 text-white">
+      <div className="w-full max-w-md border border-[#c4202f]/55 bg-[#0d0d0d] p-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/35">
           Big Iron
         </p>
 
-        <h1 className="mt-3 text-3xl font-bold">
+        <h1 className="font-heading mt-3 text-4xl uppercase tracking-[0.06em]">
           DJ Dashboard Login
         </h1>
 
-        <p className="mt-2 text-neutral-400">
+        <p className="mt-2 text-white/45">
           Enter the host password to manage song requests.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6">
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-neutral-300">
+            <span className="mb-2 block text-sm font-medium text-white/70">
               Password
             </span>
 
@@ -91,14 +91,14 @@ function LoginForm() {
               autoComplete="current-password"
               autoFocus
               placeholder="Enter password"
-              className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none transition focus:border-white"
+              className="w-full  border border-white/15 bg-black px-4 py-3 text-white outline-none transition focus:border-[#c4202f]"
             />
           </label>
 
           {error && (
             <p
               role="alert"
-              className="mt-4 rounded-xl border border-red-500/40 bg-red-950/50 p-3 text-sm text-red-200"
+              className="mt-4  border border-red-500/40 bg-red-950/50 p-3 text-sm text-red-200"
             >
               {error}
             </p>
@@ -107,7 +107,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={submitting || !password.trim()}
-            className="mt-6 w-full rounded-xl bg-white px-4 py-3 font-bold text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
+            className="font-heading mt-6 w-full border border-[#c4202f] bg-[#c4202f] px-4 py-3 text-xl uppercase tracking-[0.08em] text-white transition hover:bg-[#d9293a] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitting ? "Signing in..." : "Open Dashboard"}
           </button>
@@ -119,8 +119,8 @@ function LoginForm() {
 
 function LoginLoading() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-950 text-white">
-      <p className="text-neutral-400">Loading login...</p>
+    <main className="flex min-h-screen items-center justify-center bg-black text-white">
+      <p className="text-white/45">Loading login...</p>
     </main>
   );
 }

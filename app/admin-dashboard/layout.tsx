@@ -74,6 +74,18 @@ export default function AdminLayout({
         currentPath.startsWith("/admin-dashboard/line-dances"),
     },
     {
+      label: "Guest Photos",
+      href: "/admin-dashboard/photos",
+      matches: (currentPath) =>
+        currentPath.startsWith("/admin-dashboard/photos"),
+    },
+    {
+      label: "House Photos",
+      href: "/admin-dashboard/house-photos",
+      matches: (currentPath) =>
+        currentPath.startsWith("/admin-dashboard/house-photos"),
+    },
+    {
       label: "Now Playing",
       href: "/now-playing",
       matches: () => false,
@@ -89,22 +101,22 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-[#c4202f]/45 bg-[#0d0d0d]/95 px-4 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <Link
             href="/admin-dashboard"
             className="flex items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white font-black text-black">
+            <div className="font-heading flex h-10 w-10 items-center justify-center border border-[#c4202f] bg-black text-xl text-[#c4202f]">
               BI
             </div>
 
             <div>
-              <p className="font-bold leading-tight">
+              <p className="font-heading text-xl uppercase tracking-[0.08em] leading-tight">
                 Big Iron Admin
               </p>
 
-              <p className="text-xs text-neutral-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/35">
                 Music and line dance controls
               </p>
             </div>
@@ -129,10 +141,10 @@ export default function AdminLayout({
                       : undefined
                   }
                   className={[
-                    "rounded-xl px-4 py-2 text-sm font-semibold transition",
+                    "font-heading border px-4 py-2 text-sm uppercase tracking-[0.06em] transition",
                     active
-                      ? "bg-white text-black"
-                      : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800 hover:text-white",
+                      ? "border-[#c4202f] bg-[#c4202f] text-white"
+                      : "border-white/15 bg-black text-white/60 hover:border-[#c4202f]/70 hover:text-white",
                   ].join(" ")}
                 >
                   {item.label}

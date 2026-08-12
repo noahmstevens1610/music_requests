@@ -115,6 +115,7 @@ if (!response.ok) {
           image:
             track.album?.images?.[0]
               ?.url ?? null,
+          explicit: Boolean(track.explicit),
         })
       ) ?? [];
 

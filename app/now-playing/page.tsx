@@ -183,20 +183,14 @@ type ApprovedGuestPhoto = {
 };
 
 type ApprovedPhotosResponse = {
+  housePhotos?: ApprovedGuestPhoto[];
+  submittedPhotos?: ApprovedGuestPhoto[];
   photos?: ApprovedGuestPhoto[];
   error?: string;
 };
 
 const PHOTO_EVENT_SLUG = "big-iron";
 const PHOTO_REFRESH_MS = 5000;
-
-// Photos that YOU add.
-// Put the files in public/photos and list their public paths here.
-const HOUSE_PHOTOS: string[] = [
-  // "/photos/dance-1.jpg",
-  // "/photos/dance-2.jpg",
-  // "/photos/dance-3.jpg",
-];
 
 function shufflePhotos(items: string[]) {
   const copy = [...items];
@@ -263,7 +257,7 @@ function PhotoSlideshow() {
   const fadeTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const submittedSignatureRef = useRef("__uninitialized__");
+  const photoSignatureRef = useRef("__uninitialized__");
 
   useEffect(() => {
     let cancelled = false;
@@ -288,29 +282,39 @@ function PhotoSlideshow() {
           );
         }
 
-        const submittedPhotos = (data.photos ?? [])
+        const housePhotos = (data.housePhotos ?? [])
           .map((photo) => photo.imageUrl)
           .filter(
             (url): url is string =>
               typeof url === "string" && url.length > 0
           );
 
-        const signature = [...submittedPhotos]
-          .sort()
-          .join("|");
+        const submittedPhotos = (
+          data.submittedPhotos ?? data.photos ?? []
+        )
+          .map((photo) => photo.imageUrl)
+          .filter(
+            (url): url is string =>
+              typeof url === "string" && url.length > 0
+          );
+
+        const signature = [
+          `house:${[...housePhotos].sort().join("|")}`,
+          `submitted:${[...submittedPhotos].sort().join("|")}`,
+        ].join("::");
 
         if (
           cancelled ||
-          signature === submittedSignatureRef.current
+          signature === photoSignatureRef.current
         ) {
           return;
         }
 
-        submittedSignatureRef.current = signature;
+        photoSignatureRef.current = signature;
 
         setPhotos(
           buildAlternatingPhotoSequence(
-            HOUSE_PHOTOS,
+            housePhotos,
             submittedPhotos
           )
         );
@@ -324,13 +328,10 @@ function PhotoSlideshow() {
 
         if (
           !cancelled &&
-          submittedSignatureRef.current === "__uninitialized__"
+          photoSignatureRef.current === "__uninitialized__"
         ) {
           setPhotos(
-            buildAlternatingPhotoSequence(
-              HOUSE_PHOTOS,
-              []
-            )
+            buildAlternatingPhotoSequence([], [])
           );
         }
       }

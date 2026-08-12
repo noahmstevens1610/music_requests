@@ -221,13 +221,13 @@ export default function AdminPhotosPage() {
   return (
     <main className="min-h-screen bg-black p-4 text-white sm:p-8">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <header className="mb-6 flex flex-col gap-4 border-b border-[#c4202f]/45 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ff7b86]">
               Admin Dashboard
             </p>
-            <h1 className="mt-2 text-4xl font-black">Guest Photos</h1>
-            <p className="mt-2 text-neutral-400">
+            <h1 className="font-heading mt-2 text-4xl font-black">Guest Photos</h1>
+            <p className="mt-2 text-white/45">
               Review photos before they appear on the back wall.
             </p>
           </div>
@@ -235,14 +235,14 @@ export default function AdminPhotosPage() {
           <div className="flex flex-wrap gap-2">
             <Link
               href="/admin-dashboard"
-              className="rounded-xl border border-neutral-700 px-4 py-3 font-semibold hover:bg-neutral-800"
+              className=" border border-white/15 px-4 py-3 font-semibold hover:bg-[#151515]"
             >
               Back to Dashboard
             </Link>
             <button
               type="button"
               onClick={() => void loadPhotos()}
-              className="rounded-xl bg-[#c4202f] px-4 py-3 font-bold hover:bg-[#d9293a]"
+              className=" bg-[#c4202f] px-4 py-3 font-bold hover:bg-[#d9293a]"
             >
               Refresh
             </button>
@@ -250,31 +250,31 @@ export default function AdminPhotosPage() {
         </header>
 
         {error && (
-          <div className="mb-5 rounded-xl border border-red-500/40 bg-red-950/40 p-4 text-red-200">
+          <div className="mb-5  border border-red-500/40 bg-red-950/40 p-4 text-red-200">
             {error}
           </div>
         )}
 
         {message && (
-          <div className="mb-5 rounded-xl border border-green-500/40 bg-green-950/40 p-4 text-green-200">
+          <div className="mb-5  border border-green-500/40 bg-green-950/40 p-4 text-green-200">
             {message}
           </div>
         )}
 
-        <nav className="mb-6 grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-neutral-950 p-2">
+        <nav className="mb-6 grid grid-cols-3 gap-2  border border-white/10 bg-black p-2">
           {tabs.map((tab) => (
             <button
               key={tab.status}
               type="button"
               onClick={() => setActiveTab(tab.status)}
-              className={`rounded-xl px-3 py-3 text-sm font-bold transition sm:text-base ${
+              className={` px-3 py-3 text-sm font-bold transition sm:text-base ${
                 activeTab === tab.status
                   ? "bg-[#c4202f] text-white"
-                  : "text-neutral-400 hover:bg-neutral-900 hover:text-white"
+                  : "text-white/45 hover:bg-[#0d0d0d] hover:text-white"
               }`}
             >
               {tab.label}
-              <span className="ml-2 rounded-full bg-black/30 px-2 py-0.5 text-xs">
+              <span className="ml-2  bg-black/30 px-2 py-0.5 text-xs">
                 {counts[tab.status]}
               </span>
             </button>
@@ -282,9 +282,9 @@ export default function AdminPhotosPage() {
         </nav>
 
         {loading ? (
-          <p className="text-neutral-400">Loading guest photos...</p>
+          <p className="text-white/45">Loading guest photos...</p>
         ) : visiblePhotos.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-neutral-700 p-12 text-center text-neutral-500">
+          <div className=" border border-dashed border-white/15 p-12 text-center text-white/35">
             No {activeTab === "rejected" ? "removed" : activeTab} photos.
           </div>
         ) : (
@@ -295,13 +295,13 @@ export default function AdminPhotosPage() {
               return (
                 <article
                   key={photo.id}
-                  className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 shadow-xl"
+                  className="overflow-hidden  border border-[#c4202f]/45 bg-black shadow-xl"
                 >
                   <a
                     href={photo.image_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="block aspect-[4/3] bg-neutral-900"
+                    className="block aspect-[4/3] bg-[#0d0d0d]"
                   >
                     <img
                       src={photo.image_url}
@@ -314,7 +314,7 @@ export default function AdminPhotosPage() {
                     <p className="font-semibold text-white">
                       {formatDate(photo.created_at)}
                     </p>
-                    <p className="mt-1 truncate text-sm text-neutral-500">
+                    <p className="mt-1 truncate text-sm text-white/35">
                       {photo.original_filename || "Guest photo"} ·{" "}
                       {formatFileSize(photo.file_size_bytes)}
                     </p>
@@ -328,7 +328,7 @@ export default function AdminPhotosPage() {
                             onClick={() =>
                               void changeStatus(photo.id, "approved")
                             }
-                            className="flex-1 rounded-xl bg-green-700 px-3 py-3 font-bold hover:bg-green-600 disabled:opacity-50"
+                            className="flex-1  bg-green-700 px-3 py-3 font-bold hover:bg-green-600 disabled:opacity-50"
                           >
                             Approve
                           </button>
@@ -338,7 +338,7 @@ export default function AdminPhotosPage() {
                             onClick={() =>
                               void changeStatus(photo.id, "rejected")
                             }
-                            className="flex-1 rounded-xl bg-red-700 px-3 py-3 font-bold hover:bg-red-600 disabled:opacity-50"
+                            className="flex-1  bg-red-700 px-3 py-3 font-bold hover:bg-red-600 disabled:opacity-50"
                           >
                             Remove
                           </button>
@@ -352,7 +352,7 @@ export default function AdminPhotosPage() {
                           onClick={() =>
                             void changeStatus(photo.id, "rejected")
                           }
-                          className="w-full rounded-xl bg-red-700 px-3 py-3 font-bold hover:bg-red-600 disabled:opacity-50"
+                          className="w-full  bg-red-700 px-3 py-3 font-bold hover:bg-red-600 disabled:opacity-50"
                         >
                           Remove from Slideshow
                         </button>
@@ -366,7 +366,7 @@ export default function AdminPhotosPage() {
                             onClick={() =>
                               void changeStatus(photo.id, "pending")
                             }
-                            className="flex-1 rounded-xl border border-neutral-600 px-3 py-3 font-bold hover:bg-neutral-800 disabled:opacity-50"
+                            className="flex-1  border border-neutral-600 px-3 py-3 font-bold hover:bg-[#151515] disabled:opacity-50"
                           >
                             Restore
                           </button>
@@ -374,7 +374,7 @@ export default function AdminPhotosPage() {
                             type="button"
                             disabled={working}
                             onClick={() => void permanentlyDelete(photo)}
-                            className="flex-1 rounded-xl bg-red-800 px-3 py-3 font-bold hover:bg-red-700 disabled:opacity-50"
+                            className="flex-1  bg-red-800 px-3 py-3 font-bold hover:bg-red-700 disabled:opacity-50"
                           >
                             Delete
                           </button>

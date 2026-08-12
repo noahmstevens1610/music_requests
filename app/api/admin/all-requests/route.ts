@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
       artist_name,
       album_name,
       album_image,
+      explicit,
       votes,
       status,
       request_type,

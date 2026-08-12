@@ -39,7 +39,13 @@ type RequestRow = {
   id: string;
   spotify_track_id: string;
   request_type: "swing" | "line_dance";
+  status?: string | null;
   created_at?: string | null;
+};
+
+type SongMetadataRow = {
+  spotify_track_id: string;
+  category: "line_dance" | "swing_song" | "special" | null;
 };
 
 type LineDanceSongRow = {
@@ -178,6 +184,8 @@ export async function GET() {
     );
 
     const requestsByTrackId = new Map<string, RequestRow>();
+    const songMetadataByTrackId =
+      new Map<string, SongMetadataRow>();
     const lineDanceSongsByTrackId =
       new Map<string, LineDanceSongRow>();
     const lineDancesById = new Map<string, LineDanceRow>();
@@ -189,7 +197,7 @@ export async function GET() {
         await supabaseAdmin
           .from("requests")
           .select(
-            "id, spotify_track_id, request_type, created_at"
+            "id, spotify_track_id, request_type, status, created_at"
           )
           .in("spotify_track_id", spotifyTrackIds)
           .order("created_at", {
@@ -204,16 +212,42 @@ export async function GET() {
       } else {
         for (const requestRow of (requestRows ??
           []) as RequestRow[]) {
-          if (
-            !requestsByTrackId.has(
+          const existingRequest =
+            requestsByTrackId.get(
               requestRow.spotify_track_id
-            )
+            );
+
+          if (
+            !existingRequest ||
+            (requestRow.status === "added" &&
+              existingRequest.status !== "added")
           ) {
             requestsByTrackId.set(
               requestRow.spotify_track_id,
               requestRow
             );
           }
+        }
+      }
+
+      const { data: metadataRows, error: metadataError } =
+        await supabaseAdmin
+          .from("song_metadata")
+          .select("spotify_track_id, category")
+          .in("spotify_track_id", spotifyTrackIds);
+
+      if (metadataError) {
+        console.error(
+          "Unable to load song metadata:",
+          metadataError.message
+        );
+      } else {
+        for (const metadataRow of (metadataRows ??
+          []) as SongMetadataRow[]) {
+          songMetadataByTrackId.set(
+            metadataRow.spotify_track_id,
+            metadataRow
+          );
         }
       }
 
@@ -338,7 +372,7 @@ export async function GET() {
             ) ?? null
           : null;
 
-      const lineDance =
+      const detectedLineDance =
         matchingLineDanceSong && matchingLineDance
           ? {
               id: matchingLineDance.id,
@@ -360,12 +394,30 @@ export async function GET() {
             }
           : null;
 
+      const metadataCategory =
+        songMetadataByTrackId.get(spotifyTrackId)?.category ?? null;
+
+      const metadataRequestType:
+        | "swing"
+        | "line_dance"
+        | null = metadataCategory === "line_dance"
+        ? "line_dance"
+        : metadataCategory === "swing_song"
+          ? "swing"
+          : null;
+
+      // A request-linked choice wins. For tracks that were added directly
+      // in Spotify, use the queue override saved in song_metadata.
       const requestType:
         | "swing"
-        | "line_dance" = lineDance
-        ? "line_dance"
-        : matchingRequest?.request_type ??
-          "swing";
+        | "line_dance" = matchingRequest?.request_type ??
+        metadataRequestType ??
+        (detectedLineDance ? "line_dance" : "swing");
+
+      const lineDance =
+        requestType === "line_dance"
+          ? detectedLineDance
+          : null;
 
       return {
         spotifyTrackId,

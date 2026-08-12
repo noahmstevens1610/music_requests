@@ -111,15 +111,15 @@ export default async function HomePage() {
     .filter(Boolean);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0a0a0a] text-[#f6f0e3]">
-      <div className="border-b border-white/10 bg-[#0a0a0a]">
+    <main className="min-h-screen overflow-hidden bg-black text-white">
+      <div className="border-b border-[#c4202f]/45 bg-black">
         <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-6 px-5 py-4 sm:px-8 lg:px-10">
           <Link
             href="/"
             className="group inline-flex items-center gap-3"
             aria-label="Big Iron Country Swing home"
           >
-            <span className="grid h-10 w-10 place-items-center rounded-full border border-[#c4202f] text-[#c4202f] transition group-hover:bg-[#c4202f] group-hover:text-white">
+            <span className="grid h-10 w-10 place-items-center  border border-[#c4202f] text-[#c4202f] transition group-hover:bg-[#c4202f] group-hover:text-white">
               <StarMark className="h-4 w-4" />
             </span>
 
@@ -127,7 +127,7 @@ export default async function HomePage() {
               <span className="block text-xs font-black uppercase tracking-[0.24em] text-white/45">
                 {site.brand.topLine}
               </span>
-              <span className="block text-sm font-black uppercase tracking-[0.08em] text-[#f6f0e3] sm:text-base">
+              <span className="block text-sm font-black uppercase tracking-[0.08em] text-white sm:text-base">
                 {site.brand.bottomLine}
               </span>
             </span>
@@ -153,7 +153,7 @@ export default async function HomePage() {
 
           <ActionLink
             href={site.hero.primaryButtonHref}
-            className="inline-flex items-center gap-2 rounded-full bg-[#c4202f] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#e02a3b] sm:px-5"
+            className="inline-flex items-center gap-2  bg-[#c4202f] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#e02a3b] sm:px-5"
           >
             {site.hero.primaryButtonText}
             <ArrowIcon />
@@ -162,7 +162,7 @@ export default async function HomePage() {
       </div>
 
       <section className="relative isolate border-b border-white/10">
-        <div className="absolute inset-0 -z-20 bg-[#11100f]" />
+        <div className="absolute inset-0 -z-20 bg-[#0d0d0d]" />
         <div
           className="absolute inset-y-0 right-0 -z-10 hidden w-[46%] border-l border-white/10 bg-[#c4202f] bg-cover bg-center lg:block"
           style={
@@ -175,7 +175,7 @@ export default async function HomePage() {
           <div className="absolute inset-y-0 right-0 -z-[5] hidden w-[46%] bg-black/35 lg:block" />
         ) : (
           <>
-            <div className="absolute -right-36 top-1/2 -z-10 hidden h-[560px] w-[560px] -translate-y-1/2 rounded-full border-[90px] border-black/10 lg:block" />
+            <div className="absolute -right-36 top-1/2 -z-10 hidden h-[560px] w-[560px] -translate-y-1/2  border-[90px] border-black/10 lg:block" />
             <div className="absolute right-12 top-10 -z-10 hidden text-black/10 lg:block">
               <StarMark className="h-[430px] w-[430px]" />
             </div>
@@ -192,7 +192,7 @@ export default async function HomePage() {
                 </p>
               </div>
 
-              <h1 className="max-w-5xl text-[clamp(4.2rem,11vw,9.2rem)] font-black uppercase leading-[0.78] tracking-[-0.075em] text-[#f6f0e3]">
+              <h1 className="font-heading max-w-5xl text-[clamp(4.2rem,11vw,9.2rem)] font-black uppercase leading-[0.78] tracking-[-0.075em] text-white">
                 {site.hero.lineOne}
                 <span className="mt-3 block text-[#c4202f]">
                   {site.hero.lineTwo}
@@ -206,7 +206,7 @@ export default async function HomePage() {
               <div className="mt-10 flex flex-col gap-3 sm:flex-row">
                 <ActionLink
                   href={site.hero.primaryButtonHref}
-                  className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-[#c4202f] px-7 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:-translate-y-0.5 hover:bg-[#e02a3b]"
+                  className="inline-flex min-h-14 items-center justify-center gap-3  bg-[#c4202f] px-7 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:-translate-y-0.5 hover:bg-[#e02a3b]"
                 >
                   {site.hero.primaryButtonText}
                   <ArrowIcon />
@@ -215,7 +215,7 @@ export default async function HomePage() {
                 <ActionLink
                   href={site.hero.secondaryButtonHref || site.shopUrl}
                   external
-                  className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full border border-white/20 px-7 text-sm font-black uppercase tracking-[0.12em] text-[#f6f0e3] transition hover:-translate-y-0.5 hover:border-white/50 hover:bg-white/5"
+                  className="inline-flex min-h-14 items-center justify-center gap-3  border border-white/20 px-7 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:-translate-y-0.5 hover:border-white/50 hover:bg-white/5"
                 >
                   {site.hero.secondaryButtonText}
                   <ArrowIcon />
@@ -236,12 +236,12 @@ export default async function HomePage() {
               <div className="absolute inset-0 bg-black/35 lg:hidden" />
             ) : (
               <div className="absolute inset-0 lg:hidden">
-                <div className="absolute -right-28 top-1/2 h-[430px] w-[430px] -translate-y-1/2 rounded-full border-[70px] border-black/10" />
+                <div className="absolute -right-28 top-1/2 h-[430px] w-[430px] -translate-y-1/2  border-[70px] border-black/10" />
                 <StarMark className="absolute right-1 top-8 h-[330px] w-[330px] text-black/10" />
               </div>
             )}
 
-            <div className="relative ml-auto w-full max-w-md border-l border-white/30 pl-6 sm:pl-8">
+            <div className="relative ml-auto w-full max-w-md border-l border-[#c4202f]/45 pl-6 sm:pl-8">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-white/60">
                 {site.hero.sideEyebrow}
               </p>
@@ -260,7 +260,7 @@ export default async function HomePage() {
       {site.explore.visible ? (
         <section
           id="explore"
-          className="scroll-mt-24 border-b border-white/10 bg-[#0a0a0a] px-5 py-20 sm:px-8 lg:px-10 lg:py-28"
+          className="scroll-mt-24 border-b border-[#c4202f]/45 bg-black px-5 py-20 sm:px-8 lg:px-10 lg:py-28"
         >
           <div className="mx-auto max-w-7xl">
             <div className="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:items-end">
@@ -268,7 +268,7 @@ export default async function HomePage() {
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-[#d26b75]">
                   {site.explore.eyebrow}
                 </p>
-                <h2 className="mt-4 text-5xl font-black uppercase leading-[0.92] tracking-[-0.055em] sm:text-6xl">
+                <h2 className="font-heading mt-4 text-5xl font-black uppercase leading-[0.92] tracking-[-0.055em] sm:text-6xl">
                   {site.explore.titleLineOne}
                   <br />
                   {site.explore.titleLineTwo}
@@ -283,7 +283,7 @@ export default async function HomePage() {
             <div className="mt-14 grid border-l border-t border-white/10 md:grid-cols-2">
               {destinations.map((item) => {
                 const classes =
-                  "group relative min-h-[300px] border-b border-r border-white/10 bg-[#0f0f0f] p-7 transition hover:bg-[#151515] sm:p-9";
+                  "group relative min-h-[300px] border-b border-r border-white/10 bg-[#0d0d0d] p-7 transition hover:bg-[#151515] sm:p-9";
 
                 return (
                   <ActionLink
@@ -301,7 +301,7 @@ export default async function HomePage() {
                       </span>
                     </div>
 
-                    <h3 className="mt-16 max-w-md text-3xl font-black uppercase leading-none tracking-[-0.035em] text-[#f6f0e3] sm:text-4xl">
+                    <h3 className="font-heading mt-16 max-w-md text-3xl font-black uppercase leading-none tracking-[-0.035em] text-white sm:text-4xl">
                       {item.title}
                     </h3>
 
@@ -328,24 +328,24 @@ export default async function HomePage() {
       {site.event.visible ? (
         <section
           id="events"
-          className="scroll-mt-24 border-b border-white/10 bg-[#f1eadc] px-5 py-20 text-[#11100f] sm:px-8 lg:px-10 lg:py-28"
+          className="scroll-mt-24 border-b border-[#c4202f]/45 bg-[#0d0d0d] px-5 py-20 text-white sm:px-8 lg:px-10 lg:py-28"
         >
           <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.8fr_1.2fr]">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#9e1b28]">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#ff7b86]">
                 {site.event.eyebrow}
               </p>
-              <h2 className="mt-4 text-5xl font-black uppercase leading-[0.9] tracking-[-0.055em] sm:text-7xl">
+              <h2 className="font-heading mt-4 text-5xl font-black uppercase leading-[0.9] tracking-[-0.055em] sm:text-7xl">
                 {site.event.titleLineOne}
                 <br />
                 {site.event.titleLineTwo}
               </h2>
             </div>
 
-            <div className="border-y-2 border-[#11100f]">
+            <div className="border-y border-[#c4202f]/45">
               <div className="grid gap-6 py-8 sm:grid-cols-[150px_1fr] sm:items-center">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-black/45">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-white/45">
                     {site.event.dateLabel}
                   </p>
                   <p className="mt-2 text-2xl font-black uppercase">
@@ -353,15 +353,15 @@ export default async function HomePage() {
                   </p>
                 </div>
 
-                <div className="sm:border-l sm:border-black/20 sm:pl-8">
+                <div className="sm:border-l sm:border-white/15 sm:pl-8">
                   <p className="text-lg font-bold">{site.event.headline}</p>
-                  <p className="mt-2 leading-7 text-black/55">
+                  <p className="mt-2 leading-7 text-white/55">
                     {site.event.description}
                   </p>
                   {site.event.buttonText && site.event.buttonHref ? (
                     <ActionLink
                       href={site.event.buttonHref}
-                      className="mt-5 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-[#9e1b28]"
+                      className="mt-5 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-[#ff7b86]"
                     >
                       {site.event.buttonText}
                       <ArrowIcon />
@@ -377,21 +377,21 @@ export default async function HomePage() {
       {site.reds.visible ? (
         <section
           id="reds"
-          className="scroll-mt-24 border-b border-white/10 bg-[#c4202f] px-5 py-20 sm:px-8 lg:px-10 lg:py-28"
+          className="scroll-mt-24 border-b border-[#c4202f]/45 bg-[#0d0d0d] px-5 py-20 sm:px-8 lg:px-10 lg:py-28"
         >
           <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.22em] text-white/60">
                 {site.reds.eyebrow}
               </p>
-              <h2 className="mt-4 text-6xl font-black uppercase leading-[0.82] tracking-[-0.065em] text-white sm:text-8xl">
+              <h2 className="font-heading mt-4 text-6xl font-black uppercase leading-[0.82] tracking-[-0.065em] text-white sm:text-8xl">
                 {site.reds.titleLineOne}
                 <br />
                 {site.reds.titleLineTwo}
               </h2>
             </div>
 
-            <div className="border-l border-white/30 pl-6 sm:pl-8">
+            <div className="border-l border-[#c4202f]/45 pl-6 sm:pl-8">
               <p className="text-xl font-bold leading-8 text-white">
                 {site.reds.headline}
               </p>
@@ -415,11 +415,11 @@ export default async function HomePage() {
       {site.about.visible ? (
         <section
           id="about"
-          className="scroll-mt-24 bg-[#0a0a0a] px-5 py-20 sm:px-8 lg:px-10 lg:py-28"
+          className="scroll-mt-24 bg-black px-5 py-20 sm:px-8 lg:px-10 lg:py-28"
         >
           <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2 lg:items-center">
             <div
-              className="relative min-h-[420px] overflow-hidden border border-white/10 bg-[#11100f] bg-cover bg-center"
+              className="relative min-h-[420px] overflow-hidden border border-white/10 bg-[#0d0d0d] bg-cover bg-center"
               style={
                 site.about.imageUrl
                   ? { backgroundImage: `url("${site.about.imageUrl}")` }
@@ -431,8 +431,8 @@ export default async function HomePage() {
               ) : (
                 <>
                   <div className="absolute inset-8 border border-white/10" />
-                  <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full border-[48px] border-[#c4202f]" />
-                  <StarMark className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 text-[#f6f0e3]" />
+                  <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2  border-[48px] border-[#c4202f]" />
+                  <StarMark className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 text-white" />
                 </>
               )}
             </div>
@@ -441,7 +441,7 @@ export default async function HomePage() {
               <p className="text-xs font-black uppercase tracking-[0.22em] text-[#d26b75]">
                 {site.about.eyebrow}
               </p>
-              <h2 className="mt-4 text-5xl font-black uppercase leading-[0.92] tracking-[-0.055em] sm:text-6xl">
+              <h2 className="font-heading mt-4 text-5xl font-black uppercase leading-[0.92] tracking-[-0.055em] sm:text-6xl">
                 {site.about.titleLineOne}
                 <br />
                 {site.about.titleLineTwo}

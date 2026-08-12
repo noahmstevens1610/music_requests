@@ -18,11 +18,11 @@ type SectionKey =
   | "footer";
 
 const inputClass =
-  "mt-2 w-full rounded-xl border border-white/15 bg-black/30 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-[#c4202f]";
+  "mt-2 w-full  border border-white/15 bg-black/30 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-[#c4202f]";
 const labelClass =
   "block text-xs font-black uppercase tracking-[0.14em] text-white/55";
 const panelClass =
-  "rounded-2xl border border-white/10 bg-[#111] p-5 sm:p-7";
+  "border border-[#c4202f]/45 bg-[#0d0d0d] p-5 sm:p-7";
 
 function Field({
   label,
@@ -195,7 +195,7 @@ export default function SiteEditorPage() {
 
   if (loading) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#090909] text-white">
+      <main className="grid min-h-screen place-items-center bg-black text-white">
         <p className="text-sm font-black uppercase tracking-[0.18em] text-white/50">
           Loading site editor…
         </p>
@@ -204,14 +204,14 @@ export default function SiteEditorPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#090909] px-4 py-8 text-white sm:px-7 lg:px-10">
+    <main className="min-h-screen bg-black px-4 py-8 text-white sm:px-7 lg:px-10">
       <div className="mx-auto max-w-5xl">
         <header className="mb-8 flex flex-col gap-5 border-b border-white/10 pb-7 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#d26b75]">
               Big Iron Admin
             </p>
-            <h1 className="mt-2 text-4xl font-black uppercase tracking-[-0.04em] sm:text-5xl">
+            <h1 className="font-heading mt-2 text-4xl font-black uppercase tracking-[-0.04em] sm:text-5xl">
               Website Editor
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">
@@ -224,7 +224,7 @@ export default function SiteEditorPage() {
             <Link
               href="/"
               target="_blank"
-              className="inline-flex min-h-11 items-center rounded-full border border-white/20 px-5 text-xs font-black uppercase tracking-[0.12em] transition hover:bg-white/5"
+              className="inline-flex min-h-11 items-center  border border-white/20 px-5 text-xs font-black uppercase tracking-[0.12em] transition hover:bg-white/5"
             >
               Preview site
             </Link>
@@ -232,7 +232,7 @@ export default function SiteEditorPage() {
               type="button"
               onClick={saveContent}
               disabled={saving}
-              className="inline-flex min-h-11 items-center rounded-full bg-[#c4202f] px-5 text-xs font-black uppercase tracking-[0.12em] transition hover:bg-[#e02a3b] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-11 items-center  bg-[#c4202f] px-5 text-xs font-black uppercase tracking-[0.12em] transition hover:bg-[#e02a3b] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save website"}
             </button>
@@ -240,13 +240,13 @@ export default function SiteEditorPage() {
         </header>
 
         {error ? (
-          <div className="mb-6 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+          <div className="mb-6  border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-100">
             {error}
           </div>
         ) : null}
 
         {message ? (
-          <div className="mb-6 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-100">
+          <div className="mb-6  border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-100">
             {message}
           </div>
         ) : null}
@@ -436,10 +436,10 @@ export default function SiteEditorPage() {
               {content.destinations.map((destination, index) => (
                 <div
                   key={destination.number}
-                  className="rounded-xl border border-white/10 bg-black/25 p-5"
+                  className=" border border-white/10 bg-black/25 p-5"
                 >
                   <div className="mb-5 flex items-center justify-between">
-                    <h2 className="font-black uppercase">
+                    <h2 className="font-heading font-black uppercase">
                       Card {index + 1}
                     </h2>
                     <Toggle
@@ -766,7 +766,7 @@ export default function SiteEditorPage() {
             type="button"
             onClick={saveContent}
             disabled={saving}
-            className="min-h-14 rounded-full bg-[#c4202f] px-8 text-sm font-black uppercase tracking-[0.12em] text-white shadow-2xl transition hover:bg-[#e02a3b] disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-14  bg-[#c4202f] px-8 text-sm font-black uppercase tracking-[0.12em] text-white shadow-2xl transition hover:bg-[#e02a3b] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save website"}
           </button>

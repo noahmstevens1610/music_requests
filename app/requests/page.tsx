@@ -2,25 +2,16 @@ import Link from "next/link";
 
 export default function RequestsLandingPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black px-4 pb-10 pt-0 text-white sm:px-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.22),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_32%)]" />
+    <main className="relative min-h-screen overflow-hidden bg-black px-4 py-10 text-white sm:px-6">
 
       <div className="relative mx-auto max-w-6xl">
-        <header className="-mx-4 overflow-hidden sm:-mx-6">
-          <img
-            src="/song-requests-banner.png"
-            alt="Big Iron Country Swing requests"
-            className="block h-auto w-full object-contain"
-          />
-        </header>
-
-        <section className="mt-5 rounded-3xl border border-white/10 bg-[#0d0d0d]/95 p-4 shadow-2xl sm:p-6">
+        <section className="mt-5 border border-[#c4202f]/45 bg-[#0d0d0d] p-4 sm:p-6">
           <div className="border-b-2 border-[#c4202f] pb-4">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-white/55">
               Big Iron Country Swing
             </p>
 
-            <h1 className="mt-2 text-3xl font-black uppercase tracking-[0.035em] text-white sm:text-4xl">
+            <h1 className="font-heading mt-2 text-3xl font-black uppercase tracking-[0.035em] text-white sm:text-4xl">
               Make a Request
             </h1>
 
@@ -31,10 +22,10 @@ export default function RequestsLandingPage() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <Link
-              href="/song-requests"
-              className="group flex min-h-[280px] flex-col rounded-3xl border border-white/10 bg-[#111111] p-6 shadow-lg transition hover:-translate-y-1 hover:border-[#c4202f] hover:bg-[#151515]"
+              href="/requests/song"
+              className="group flex min-h-[280px] flex-col  border border-white/10 bg-[#0d0d0d] p-6 transition hover:-translate-y-1 hover:border-[#c4202f] hover:bg-[#151515]"
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#c4202f]/15 text-[#ff7b86] transition group-hover:bg-[#c4202f] group-hover:text-white">
+              <div className="flex h-16 w-16 items-center justify-center  bg-[#c4202f]/15 text-[#ff7b86] transition group-hover:bg-[#c4202f] group-hover:text-white">
                 <svg
                   viewBox="0 0 48 48"
                   aria-hidden="true"
@@ -51,7 +42,7 @@ export default function RequestsLandingPage() {
                 </svg>
               </div>
 
-              <h2 className="mt-6 text-3xl font-black uppercase tracking-[0.035em] text-white">
+              <h2 className="font-heading mt-6 text-3xl font-black uppercase tracking-[0.035em] text-white">
                 Request a Song
               </h2>
 
@@ -60,17 +51,17 @@ export default function RequestsLandingPage() {
               </p>
 
               <span className="mt-auto pt-8">
-                <span className="inline-flex w-full items-center justify-center rounded-2xl bg-[#c4202f] px-5 py-4 text-lg font-black uppercase tracking-wide text-white transition group-hover:bg-[#d9293a]">
+                <span className="inline-flex w-full items-center justify-center  bg-[#c4202f] px-5 py-4 text-lg font-black uppercase tracking-wide text-white transition group-hover:bg-[#d9293a]">
                   Request a Song
                 </span>
               </span>
             </Link>
 
             <Link
-              href="/submit-photo"
-              className="group flex min-h-[280px] flex-col rounded-3xl border border-white/10 bg-[#111111] p-6 shadow-lg transition hover:-translate-y-1 hover:border-[#c4202f] hover:bg-[#151515]"
+              href="/requests/photo"
+              className="group flex min-h-[280px] flex-col  border border-white/10 bg-[#0d0d0d] p-6 transition hover:-translate-y-1 hover:border-[#c4202f] hover:bg-[#151515]"
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#c4202f]/15 text-[#ff7b86] transition group-hover:bg-[#c4202f] group-hover:text-white">
+              <div className="flex h-16 w-16 items-center justify-center  bg-[#c4202f]/15 text-[#ff7b86] transition group-hover:bg-[#c4202f] group-hover:text-white">
                 <svg
                   viewBox="0 0 48 48"
                   aria-hidden="true"
@@ -87,7 +78,7 @@ export default function RequestsLandingPage() {
                 </svg>
               </div>
 
-              <h2 className="mt-6 text-3xl font-black uppercase tracking-[0.035em] text-white">
+              <h2 className="font-heading mt-6 text-3xl font-black uppercase tracking-[0.035em] text-white">
                 Submit a Photo
               </h2>
 
@@ -96,7 +87,7 @@ export default function RequestsLandingPage() {
               </p>
 
               <span className="mt-auto pt-8">
-                <span className="inline-flex w-full items-center justify-center rounded-2xl border-2 border-[#c4202f] bg-transparent px-5 py-4 text-lg font-black uppercase tracking-wide text-white transition group-hover:bg-[#c4202f]">
+                <span className="inline-flex w-full items-center justify-center  border-2 border-[#c4202f] bg-transparent px-5 py-4 text-lg font-black uppercase tracking-wide text-white transition group-hover:bg-[#c4202f]">
                   Submit a Photo
                 </span>
               </span>

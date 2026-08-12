@@ -153,7 +153,6 @@ function AllRequestsContent() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black px-4 pb-12 pt-8 text-white sm:px-6 sm:pb-16 sm:pt-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.20),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06),transparent_30%)]" />
 
       <div className="relative mx-auto max-w-7xl">
         <header className="flex flex-col gap-6 border-b border-white/15 pb-7 sm:flex-row sm:items-end sm:justify-between">
@@ -180,7 +179,7 @@ function AllRequestsContent() {
               setConfirmation("");
               setError("");
             }}
-            className="font-heading self-start rounded-md border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f] active:scale-95 sm:self-auto"
+            className="font-heading self-start  border-2 border-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.07em] text-white transition hover:bg-[#c4202f] active:scale-95 sm:self-auto"
           >
             Reset Event
           </button>
@@ -246,7 +245,7 @@ function AllRequestsContent() {
                           className="group grid grid-cols-[56px_64px_minmax(0,1fr)] items-center gap-3 border-b border-white/15 px-1 py-5 transition duration-200 last:border-b-0 hover:bg-white/[0.025] sm:grid-cols-[68px_82px_minmax(0,1fr)_auto] sm:gap-5 sm:px-3"
                         >
                           <div className="flex shrink-0 flex-col items-center justify-center">
-                            <span className="font-heading grid h-11 w-11 place-items-center rounded-full bg-[#c4202f] text-2xl leading-none text-white sm:h-13 sm:w-13 sm:text-3xl">
+                            <span className="font-heading grid h-11 w-11 place-items-center  bg-[#c4202f] text-2xl leading-none text-white sm:h-13 sm:w-13 sm:text-3xl">
                               {request.votes}
                             </span>
 
@@ -266,13 +265,13 @@ function AllRequestsContent() {
                               className="aspect-square h-16 w-16 shrink-0 border border-white/10 object-cover sm:h-20 sm:w-20"
                             />
                           ) : (
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center border border-white/10 bg-[#111] text-xl text-white/25 sm:h-20 sm:w-20">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center border border-[#c4202f]/45 bg-[#0d0d0d] text-xl text-white/25 sm:h-20 sm:w-20">
                               ♪
                             </div>
                           )}
 
                           <div className="min-w-0">
-                            <h3 className="truncate text-base font-black text-white sm:text-xl">
+                            <h3 className="font-heading truncate text-base font-black text-white sm:text-xl">
                               {request.track_name}
                             </h3>
 
@@ -363,7 +362,7 @@ function AllRequestsContent() {
                     setShowResetWarning(false);
                     setConfirmation("");
                   }}
-                  className="font-heading rounded-md border-2 border-white/20 px-5 py-3 text-base uppercase tracking-[0.06em] text-white/70 transition hover:border-white/40 hover:bg-white/5"
+                  className="font-heading  border-2 border-white/20 px-5 py-3 text-base uppercase tracking-[0.06em] text-white/70 transition hover:border-white/40 hover:bg-white/5"
                 >
                   Cancel
                 </button>
@@ -375,7 +374,7 @@ function AllRequestsContent() {
                     resetting
                   }
                   onClick={resetRequests}
-                  className="font-heading rounded-md border-2 border-[#c4202f] bg-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.06em] text-white transition hover:bg-[#df2939] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="font-heading  border-2 border-[#c4202f] bg-[#c4202f] px-5 py-3 text-base uppercase tracking-[0.06em] text-white transition hover:bg-[#df2939] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {resetting
                     ? "Clearing…"
@@ -395,7 +394,6 @@ export default function AllRequestsPage() {
     <Suspense
       fallback={
         <main className="relative min-h-screen overflow-hidden bg-black px-4 py-8 text-white">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(196,32,47,0.20),transparent_36%)]" />
           <div className="relative mx-auto max-w-7xl border-y border-white/15 py-16 text-center">
             <p className="font-heading text-2xl uppercase tracking-[0.08em] text-white/35">
               Loading Requests…
