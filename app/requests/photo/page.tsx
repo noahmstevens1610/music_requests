@@ -143,21 +143,38 @@ export default function SubmitPhotoPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="mt-6">
-            <label className="block">
+            <div>
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-white/55">
                 Choose a photo
               </span>
 
-              <div className=" border border-white/15 bg-black p-3 transition focus-within:border-[#c4202f]">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                  capture="environment"
-                  onChange={handlePhotoChange}
-                  className="block w-full cursor-pointer text-sm font-bold text-white/60 file:mr-4 file:cursor-pointer  file:border-0 file:bg-[#c4202f] file:px-4 file:py-3 file:text-sm file:font-black file:text-white hover:file:bg-[#c4202f]/90"
-                />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="font-heading flex cursor-pointer items-center justify-center border border-[#c4202f] bg-[#c4202f] px-4 py-4 text-center text-lg uppercase tracking-[0.08em] text-white transition hover:bg-[#d9293a]">
+                  Upload From Device
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                    onChange={handlePhotoChange}
+                    className="sr-only"
+                  />
+                </label>
+
+                <label className="font-heading flex cursor-pointer items-center justify-center border border-white/20 bg-black px-4 py-4 text-center text-lg uppercase tracking-[0.08em] text-white transition hover:border-[#c4202f] hover:bg-[#151515]">
+                  Take a Photo
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                    capture="environment"
+                    onChange={handlePhotoChange}
+                    className="sr-only"
+                  />
+                </label>
               </div>
-            </label>
+
+              <p className="mt-2 text-xs text-white/35">
+                Choose an existing image from your phone, tablet, or computer, or take a new photo with your camera.
+              </p>
+            </div>
 
             {previewUrl ? (
               <div className="mt-5 overflow-hidden  border border-white/10 bg-[#0d0d0d] p-3 shadow-lg">
