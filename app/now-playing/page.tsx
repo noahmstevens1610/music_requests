@@ -282,25 +282,35 @@ function PhotoSlideshow() {
           );
         }
 
-        const housePhotos = (data.housePhotos ?? [])
+        const housePhotoRecords = data.housePhotos ?? [];
+        const submittedPhotoRecords =
+          data.submittedPhotos ?? data.photos ?? [];
+
+        const housePhotos = housePhotoRecords
           .map((photo) => photo.imageUrl)
           .filter(
             (url): url is string =>
               typeof url === "string" && url.length > 0
           );
 
-        const submittedPhotos = (
-          data.submittedPhotos ?? data.photos ?? []
-        )
+        const submittedPhotos = submittedPhotoRecords
           .map((photo) => photo.imageUrl)
           .filter(
             (url): url is string =>
               typeof url === "string" && url.length > 0
           );
 
+        // Signed URLs change over time, so use stable photo IDs to decide
+        // whether the slideshow contents actually changed.
         const signature = [
-          `house:${[...housePhotos].sort().join("|")}`,
-          `submitted:${[...submittedPhotos].sort().join("|")}`,
+          `house:${housePhotoRecords
+            .map((photo) => photo.id)
+            .sort()
+            .join("|")}`,
+          `submitted:${submittedPhotoRecords
+            .map((photo) => photo.id)
+            .sort()
+            .join("|")}`,
         ].join("::");
 
         if (

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import sharp from "sharp";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
@@ -51,17 +51,105 @@ function isHousePath(storagePath: string, eventSlug: string) {
   return storagePath.startsWith(housePrefix(eventSlug));
 }
 
-function withPublicUrl<T extends { storage_path: string }>(photo: T) {
-  const {
-    data: { publicUrl },
-  } = supabaseAdmin.storage
-    .from("guest-photos")
-    .getPublicUrl(photo.storage_path);
-
+function withImageUrl<T extends { id: string }>(photo: T) {
   return {
     ...photo,
-    image_url: publicUrl,
+    image_url: `/api/photos/image?photoId=${encodeURIComponent(photo.id)}`,
   };
+}
+
+
+function sha256(buffer: Buffer) {
+  return createHash("sha256").update(buffer).digest("hex");
+}
+
+async function makeBrowserSafeJpeg(sourceBuffer: Buffer) {
+  const jpegBuffer = await sharp(sourceBuffer, {
+    failOn: "none",
+  })
+    .rotate()
+    .resize({
+      width: MAX_PROJECTOR_DIMENSION,
+      height: MAX_PROJECTOR_DIMENSION,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .jpeg({
+      quality: 86,
+      mozjpeg: true,
+    })
+    .toBuffer();
+
+  const metadata = await sharp(jpegBuffer).metadata();
+
+  if (
+    metadata.format !== "jpeg" ||
+    !metadata.width ||
+    !metadata.height
+  ) {
+    throw new Error(
+      "The selected image could not be converted to a valid JPEG."
+    );
+  }
+
+  return jpegBuffer;
+}
+
+async function uploadAndVerify(
+  storagePath: string,
+  jpegBuffer: Buffer
+) {
+  const uploadBlob = new Blob(
+    [new Uint8Array(jpegBuffer)],
+    { type: "image/jpeg" }
+  );
+
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from("guest-photos")
+    .upload(storagePath, uploadBlob, {
+      contentType: "image/jpeg",
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+
+  try {
+    const { data: storedFile, error: downloadError } =
+      await supabaseAdmin.storage
+        .from("guest-photos")
+        .download(storagePath);
+
+    if (downloadError || !storedFile) {
+      throw new Error(
+        downloadError?.message ??
+          "Uploaded photo could not be read back from storage."
+      );
+    }
+
+    const storedBuffer = Buffer.from(
+      await storedFile.arrayBuffer()
+    );
+
+    if (
+      storedBuffer.length !== jpegBuffer.length ||
+      sha256(storedBuffer) !== sha256(jpegBuffer)
+    ) {
+      throw new Error(
+        "The stored photo did not match the uploaded image."
+      );
+    }
+
+    await sharp(storedBuffer).metadata();
+  } catch (error) {
+    await supabaseAdmin.storage
+      .from("guest-photos")
+      .remove([storagePath]);
+
+    throw error;
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -86,9 +174,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({
-    photos: (data ?? []).map(withPublicUrl),
-  });
+  const photos = (data ?? []).map((photo) =>
+    withImageUrl(photo)
+  );
+
+  return NextResponse.json({ photos });
 }
 
 export async function POST(request: NextRequest) {
@@ -111,8 +201,16 @@ export async function POST(request: NextRequest) {
     if (!ALLOWED_TYPES.has(file.type)) {
       return NextResponse.json(
         {
-          error: "Please upload a JPG, PNG, WebP, HEIC, or HEIF image.",
+          error:
+            "Please upload a JPG, PNG, WebP, HEIC, or HEIF image.",
         },
+        { status: 400 }
+      );
+    }
+
+    if (file.size <= 0) {
+      return NextResponse.json(
+        { error: "The selected photo is empty." },
         { status: 400 }
       );
     }
@@ -124,31 +222,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sourceBuffer = Buffer.from(await file.arrayBuffer());
-    const optimizedBuffer = await sharp(sourceBuffer, { failOn: "none" })
-      .rotate()
-      .resize({
-        width: MAX_PROJECTOR_DIMENSION,
-        height: MAX_PROJECTOR_DIMENSION,
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .jpeg({ quality: 84, mozjpeg: true })
-      .toBuffer();
+    const sourceBuffer = Buffer.from(
+      await file.arrayBuffer()
+    );
 
-    const storagePath = `${housePrefix(eventSlug)}${randomUUID()}.jpg`;
-
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from("guest-photos")
-      .upload(storagePath, optimizedBuffer, {
-        contentType: "image/jpeg",
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      throw new Error(uploadError.message);
+    if (sourceBuffer.length !== file.size) {
+      return NextResponse.json(
+        {
+          error:
+            "The browser did not send the complete image. Please choose it again.",
+        },
+        { status: 400 }
+      );
     }
+
+    const jpegBuffer =
+      await makeBrowserSafeJpeg(sourceBuffer);
+
+    const storagePath =
+      `${housePrefix(eventSlug)}${randomUUID()}.jpg`;
+
+    await uploadAndVerify(storagePath, jpegBuffer);
 
     const {
       data: { publicUrl },
@@ -156,33 +250,35 @@ export async function POST(request: NextRequest) {
       .from("guest-photos")
       .getPublicUrl(storagePath);
 
-    const { data: photo, error: insertError } = await supabaseAdmin
-      .from("guest_photos")
-      .insert({
-        event_slug: eventSlug,
-        storage_path: storagePath,
-        image_url: publicUrl,
-        status: "approved",
-        device_id: null,
-        original_filename: file.name || null,
-        mime_type: "image/jpeg",
-        file_size_bytes: optimizedBuffer.length,
-        reviewed_at: new Date().toISOString(),
-      })
-      .select(
-        "id, event_slug, storage_path, image_url, status, original_filename, mime_type, file_size_bytes, created_at, reviewed_at"
-      )
-      .single();
+    const { data: photo, error: insertError } =
+      await supabaseAdmin
+        .from("guest_photos")
+        .insert({
+          event_slug: eventSlug,
+          storage_path: storagePath,
+          image_url: publicUrl,
+          status: "approved",
+          device_id: null,
+          original_filename: file.name || null,
+          mime_type: "image/jpeg",
+          file_size_bytes: jpegBuffer.length,
+          reviewed_at: new Date().toISOString(),
+        })
+        .select(
+          "id, event_slug, storage_path, image_url, status, original_filename, mime_type, file_size_bytes, created_at, reviewed_at"
+        )
+        .single();
 
     if (insertError) {
       await supabaseAdmin.storage
         .from("guest-photos")
         .remove([storagePath]);
+
       throw new Error(insertError.message);
     }
 
     return NextResponse.json(
-      { photo: withPublicUrl(photo) },
+      { photo: withImageUrl(photo) },
       { status: 201 }
     );
   } catch (error) {
@@ -269,7 +365,9 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ photo: withPublicUrl(photo) });
+  const imagePhoto = withImageUrl(photo);
+
+  return NextResponse.json({ photo: imagePhoto });
 }
 
 export async function DELETE(request: NextRequest) {

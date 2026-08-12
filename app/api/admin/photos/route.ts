@@ -34,6 +34,13 @@ function unauthorized() {
   return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 }
 
+function withImageUrl<T extends { id: string }>(photo: T) {
+  return {
+    ...photo,
+    image_url: `/api/photos/image?photoId=${encodeURIComponent(photo.id)}`,
+  };
+}
+
 export async function GET(request: NextRequest) {
   if (!(await isAuthenticated())) {
     return unauthorized();
@@ -58,18 +65,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const photos = (data ?? []).map((photo) => {
-  const {
-    data: { publicUrl },
-  } = supabaseAdmin.storage
-    .from("guest-photos")
-    .getPublicUrl(photo.storage_path);
-
-  return {
-    ...photo,
-    image_url: publicUrl,
-  };
-});
+  const photos = (data ?? []).map((photo) =>
+    withImageUrl(photo)
+  );
 
   return NextResponse.json({
     photos,
@@ -137,7 +135,9 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ photo: data });
+  const photo = withImageUrl(data);
+
+  return NextResponse.json({ photo });
 }
 
 export async function DELETE(request: NextRequest) {

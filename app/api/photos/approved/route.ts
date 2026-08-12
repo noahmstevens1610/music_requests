@@ -3,6 +3,21 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 
+type ApprovedPhotoRow = {
+  id: string;
+  storage_path: string;
+  created_at: string;
+};
+
+function toApprovedPhoto(photo: ApprovedPhotoRow) {
+  return {
+    id: photo.id,
+    imageUrl: `/api/photos/image?photoId=${encodeURIComponent(photo.id)}`,
+    createdAt: photo.created_at,
+    storagePath: photo.storage_path,
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const eventSlug =
@@ -11,30 +26,36 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from("guest_photos")
-      .select("id, image_url, created_at")
+      .select("id, storage_path, created_at")
       .eq("event_slug", eventSlug)
       .eq("status", "approved")
       .order("created_at", { ascending: true })
-      .limit(250);
+      .limit(500);
 
     if (error) {
       throw new Error(error.message);
     }
 
-    const photos = (data ?? [])
-      .filter(
-        (photo) =>
-          typeof photo.image_url === "string" &&
-          photo.image_url.length > 0
-      )
-      .map((photo) => ({
-        id: photo.id,
-        imageUrl: photo.image_url,
-        createdAt: photo.created_at,
-      }));
+    const mapped = ((data ?? []) as ApprovedPhotoRow[]).map(
+      toApprovedPhoto
+    );
+
+    const housePrefix = `house/${eventSlug}/`;
+
+    const housePhotos = mapped.filter((photo) =>
+      photo.storagePath.startsWith(housePrefix)
+    );
+
+    const submittedPhotos = mapped.filter(
+      (photo) => !photo.storagePath.startsWith(housePrefix)
+    );
 
     return NextResponse.json(
-      { photos },
+      {
+        housePhotos,
+        submittedPhotos,
+        photos: submittedPhotos,
+      },
       {
         headers: {
           "Cache-Control": "no-store, max-age=0",
@@ -42,10 +63,7 @@ export async function GET(request: NextRequest) {
       }
     );
   } catch (error) {
-    console.error(
-      "Unable to load approved guest photos:",
-      error
-    );
+    console.error("Unable to load approved photos:", error);
 
     return NextResponse.json(
       {
