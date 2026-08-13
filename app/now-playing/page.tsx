@@ -189,8 +189,22 @@ type ApprovedPhotosResponse = {
   error?: string;
 };
 
+type PhotoSlideshowSettings = {
+  houseDurationSeconds: number;
+  guestDurationSeconds: number;
+};
+
+type PhotoSettingsResponse = {
+  settings?: PhotoSlideshowSettings;
+  error?: string;
+};
+
 const PHOTO_EVENT_SLUG = "big-iron";
 const PHOTO_REFRESH_MS = 5000;
+const DEFAULT_PHOTO_SETTINGS: PhotoSlideshowSettings = {
+  houseDurationSeconds: 7,
+  guestDurationSeconds: 7,
+};
 
 function shufflePhotos(items: string[]) {
   const copy = [...items];
@@ -207,14 +221,17 @@ function buildAlternatingPhotoSequence(
   housePhotos: string[],
   submittedPhotos: string[]
 ): PhotoItem[] {
-  const shuffledHouse = shufflePhotos(housePhotos);
+  // House photos always stay in their database/upload order.
+  const orderedHouse = [...housePhotos];
+
+  // Guest submissions are randomized for every slideshow cycle.
   const shuffledSubmitted = shufflePhotos(submittedPhotos);
 
-  if (shuffledHouse.length === 0 && shuffledSubmitted.length === 0) {
+  if (orderedHouse.length === 0 && shuffledSubmitted.length === 0) {
     return [];
   }
 
-  if (shuffledHouse.length === 0) {
+  if (orderedHouse.length === 0) {
     return shuffledSubmitted.map((src) => ({
       src,
       source: "submitted",
@@ -222,7 +239,7 @@ function buildAlternatingPhotoSequence(
   }
 
   if (shuffledSubmitted.length === 0) {
-    return shuffledHouse.map((src) => ({
+    return orderedHouse.map((src) => ({
       src,
       source: "house",
     }));
@@ -230,13 +247,13 @@ function buildAlternatingPhotoSequence(
 
   const sequence: PhotoItem[] = [];
   const cycleLength = Math.max(
-    shuffledHouse.length,
+    orderedHouse.length,
     shuffledSubmitted.length
   );
 
   for (let index = 0; index < cycleLength; index += 1) {
     sequence.push({
-      src: shuffledHouse[index % shuffledHouse.length],
+      src: orderedHouse[index % orderedHouse.length],
       source: "house",
     });
 
@@ -253,11 +270,16 @@ function PhotoSlideshow() {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visible, setVisible] = useState(true);
+  const [photoSettings, setPhotoSettings] =
+    useState<PhotoSlideshowSettings>(DEFAULT_PHOTO_SETTINGS);
 
   const fadeTimeoutRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null);
+    useRef<number | null>(null);
+  const displayTimeoutRef = useRef<number | null>(null);
 
   const photoSignatureRef = useRef("__uninitialized__");
+  const housePhotosRef = useRef<string[]>([]);
+  const submittedPhotosRef = useRef<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -300,12 +322,11 @@ function PhotoSlideshow() {
               typeof url === "string" && url.length > 0
           );
 
-        // Signed URLs change over time, so use stable photo IDs to decide
-        // whether the slideshow contents actually changed.
+        // Preserve house order, but treat guest order as irrelevant because
+        // guest submissions are intentionally shuffled on the projector.
         const signature = [
           `house:${housePhotoRecords
             .map((photo) => photo.id)
-            .sort()
             .join("|")}`,
           `submitted:${submittedPhotoRecords
             .map((photo) => photo.id)
@@ -321,6 +342,8 @@ function PhotoSlideshow() {
         }
 
         photoSignatureRef.current = signature;
+        housePhotosRef.current = housePhotos;
+        submittedPhotosRef.current = submittedPhotos;
 
         setPhotos(
           buildAlternatingPhotoSequence(
@@ -340,17 +363,43 @@ function PhotoSlideshow() {
           !cancelled &&
           photoSignatureRef.current === "__uninitialized__"
         ) {
-          setPhotos(
-            buildAlternatingPhotoSequence([], [])
-          );
+          setPhotos([]);
         }
       }
     }
 
+    async function loadPhotoSettings() {
+      try {
+        const response = await fetch("/api/photos/settings", {
+          cache: "no-store",
+        });
+
+        const data =
+          (await response.json()) as PhotoSettingsResponse;
+
+        if (!response.ok || !data.settings) {
+          throw new Error(
+            data.error ?? "Unable to load photo timing."
+          );
+        }
+
+        if (!cancelled) {
+          setPhotoSettings(data.settings);
+        }
+      } catch (settingsError) {
+        console.error(
+          "Unable to refresh photo slideshow timing:",
+          settingsError
+        );
+      }
+    }
+
     void loadApprovedPhotos();
+    void loadPhotoSettings();
 
     const refreshInterval = window.setInterval(() => {
       void loadApprovedPhotos();
+      void loadPhotoSettings();
     }, PHOTO_REFRESH_MS);
 
     return () => {
@@ -359,32 +408,58 @@ function PhotoSlideshow() {
     };
   }, []);
 
+  const currentPhoto = photos[currentIndex] ?? null;
+
   useEffect(() => {
-    if (photos.length <= 1) {
+    if (!currentPhoto || photos.length <= 1) {
       return;
     }
 
-    const interval = window.setInterval(() => {
+    const durationSeconds =
+      currentPhoto.source === "house"
+        ? photoSettings.houseDurationSeconds
+        : photoSettings.guestDurationSeconds;
+
+    displayTimeoutRef.current = window.setTimeout(() => {
       setVisible(false);
 
-      fadeTimeoutRef.current = setTimeout(() => {
-        setCurrentIndex(
-          (current) => (current + 1) % photos.length
-        );
+      fadeTimeoutRef.current = window.setTimeout(() => {
+        const nextIndex = currentIndex + 1;
+
+        if (nextIndex >= photos.length) {
+          // Start a fresh cycle. House photos remain in the exact same order,
+          // while guest submissions receive a new randomized order.
+          const nextSequence = buildAlternatingPhotoSequence(
+            housePhotosRef.current,
+            submittedPhotosRef.current
+          );
+
+          setPhotos(nextSequence);
+          setCurrentIndex(0);
+        } else {
+          setCurrentIndex(nextIndex);
+        }
+
         setVisible(true);
       }, 650);
-    }, 7000);
+    }, durationSeconds * 1000);
 
     return () => {
-      window.clearInterval(interval);
+      if (displayTimeoutRef.current) {
+        window.clearTimeout(displayTimeoutRef.current);
+      }
 
       if (fadeTimeoutRef.current) {
-        clearTimeout(fadeTimeoutRef.current);
+        window.clearTimeout(fadeTimeoutRef.current);
       }
     };
-  }, [photos.length]);
-
-  const currentPhoto = photos[currentIndex] ?? null;
+  }, [
+    currentIndex,
+    currentPhoto,
+    photoSettings.guestDurationSeconds,
+    photoSettings.houseDurationSeconds,
+    photos.length,
+  ]);
 
   if (!currentPhoto) {
     return (

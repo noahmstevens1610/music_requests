@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
     )
     .eq("event_slug", eventSlug)
     .like("storage_path", `${housePrefix(eventSlug)}%`)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: true });
 
   if (error) {
     return NextResponse.json(

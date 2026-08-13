@@ -31,6 +31,8 @@ const emptyCounts: Counts = {
   rejected: 0,
 };
 
+const DEFAULT_GUEST_DURATION_SECONDS = 7;
+
 function formatFileSize(bytes: number | null) {
   if (!bytes) return "Unknown size";
   const megabytes = bytes / (1024 * 1024);
@@ -58,6 +60,10 @@ export default function AdminPhotosPage() {
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [guestDurationSeconds, setGuestDurationSeconds] = useState(
+    DEFAULT_GUEST_DURATION_SECONDS
+  );
+  const [savingDuration, setSavingDuration] = useState(false);
 
   const loadPhotos = useCallback(async (quiet = false) => {
     try {
@@ -95,15 +101,34 @@ export default function AdminPhotosPage() {
     }
   }, []);
 
+  const loadPhotoTiming = useCallback(async () => {
+    try {
+      const response = await fetch("/api/photos/settings", {
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (response.ok && data.settings) {
+        setGuestDurationSeconds(
+          data.settings.guestDurationSeconds ??
+            DEFAULT_GUEST_DURATION_SECONDS
+        );
+      }
+    } catch (settingsError) {
+      console.error("Unable to load guest photo timing:", settingsError);
+    }
+  }, []);
+
   useEffect(() => {
     void loadPhotos();
+    void loadPhotoTiming();
 
     const interval = window.setInterval(() => {
       void loadPhotos(true);
     }, 4000);
 
     return () => window.clearInterval(interval);
-  }, [loadPhotos]);
+  }, [loadPhotoTiming, loadPhotos]);
 
   const visiblePhotos = useMemo(
     () => photos.filter((photo) => photo.status === activeTab),
@@ -212,6 +237,47 @@ export default function AdminPhotosPage() {
     }
   }
 
+  async function saveGuestDuration() {
+    try {
+      setSavingDuration(true);
+      setError("");
+      setMessage("");
+
+      const response = await fetch("/api/photos/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestDurationSeconds }),
+      });
+
+      if (response.status === 401) {
+        window.location.href =
+          "/admin-login?next=/admin-dashboard/photos";
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ?? "Unable to save guest photo timing."
+        );
+      }
+
+      setGuestDurationSeconds(
+        data.settings?.guestDurationSeconds ?? guestDurationSeconds
+      );
+      setMessage("Guest photo display time saved.");
+    } catch (settingsError) {
+      setError(
+        settingsError instanceof Error
+          ? settingsError.message
+          : "Unable to save guest photo timing."
+      );
+    } finally {
+      setSavingDuration(false);
+    }
+  }
+
   const tabs: Array<{ status: PhotoStatus; label: string }> = [
     { status: "pending", label: "Pending" },
     { status: "approved", label: "Approved" },
@@ -228,7 +294,7 @@ export default function AdminPhotosPage() {
             </p>
             <h1 className="font-heading mt-2 text-4xl font-black">Guest Photos</h1>
             <p className="mt-2 text-white/45">
-              Review photos before they appear on the back wall.
+              Review photos before they appear on the back wall. Approved submissions are randomized on the projector.
             </p>
           </div>
 
@@ -260,6 +326,46 @@ export default function AdminPhotosPage() {
             {message}
           </div>
         )}
+
+        <section className="mb-6 border border-[#c4202f]/45 bg-[#0d0d0d] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">
+                Guest Photo Display Time
+              </p>
+              <p className="mt-2 text-sm text-white/40">
+                Approved guest submissions play in a new random order each slideshow cycle.
+              </p>
+            </div>
+
+            <div className="flex items-end gap-2">
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-black uppercase tracking-[0.14em] text-white/40">
+                  Seconds
+                </span>
+                <input
+                  type="number"
+                  min={2}
+                  max={60}
+                  step={1}
+                  value={guestDurationSeconds}
+                  onChange={(event) =>
+                    setGuestDurationSeconds(Number(event.target.value))
+                  }
+                  className="w-24 border border-white/15 bg-black px-3 py-3 text-center font-bold text-white"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => void saveGuestDuration()}
+                disabled={savingDuration}
+                className="bg-[#c4202f] px-5 py-3 font-bold text-white disabled:opacity-50"
+              >
+                {savingDuration ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </section>
 
         <nav className="mb-6 grid grid-cols-3 gap-2  border border-white/10 bg-black p-2">
           {tabs.map((tab) => (

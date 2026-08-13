@@ -15,6 +15,7 @@ type HousePhoto = {
 
 const EVENT_SLUG = "big-iron";
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const DEFAULT_HOUSE_DURATION_SECONDS = 7;
 
 function formatFileSize(bytes: number | null) {
   if (!bytes) return "Unknown size";
@@ -32,6 +33,10 @@ export default function HousePhotosPage() {
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [houseDurationSeconds, setHouseDurationSeconds] = useState(
+    DEFAULT_HOUSE_DURATION_SECONDS
+  );
+  const [savingDuration, setSavingDuration] = useState(false);
 
   const loadPhotos = useCallback(async (quiet = false) => {
     try {
@@ -67,9 +72,28 @@ export default function HousePhotosPage() {
     }
   }, []);
 
+  const loadPhotoTiming = useCallback(async () => {
+    try {
+      const response = await fetch("/api/photos/settings", {
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (response.ok && data.settings) {
+        setHouseDurationSeconds(
+          data.settings.houseDurationSeconds ??
+            DEFAULT_HOUSE_DURATION_SECONDS
+        );
+      }
+    } catch (settingsError) {
+      console.error("Unable to load house photo timing:", settingsError);
+    }
+  }, []);
+
   useEffect(() => {
     void loadPhotos();
-  }, [loadPhotos]);
+    void loadPhotoTiming();
+  }, [loadPhotoTiming, loadPhotos]);
 
   function handleFiles(event: ChangeEvent<HTMLInputElement>) {
     setError("");
@@ -245,6 +269,47 @@ export default function HousePhotosPage() {
     }
   }
 
+  async function saveHouseDuration() {
+    try {
+      setSavingDuration(true);
+      setError("");
+      setMessage("");
+
+      const response = await fetch("/api/photos/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ houseDurationSeconds }),
+      });
+
+      if (response.status === 401) {
+        window.location.href =
+          "/admin-login?next=/admin-dashboard/house-photos";
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ?? "Unable to save house photo timing."
+        );
+      }
+
+      setHouseDurationSeconds(
+        data.settings?.houseDurationSeconds ?? houseDurationSeconds
+      );
+      setMessage("House photo display time saved.");
+    } catch (settingsError) {
+      setError(
+        settingsError instanceof Error
+          ? settingsError.message
+          : "Unable to save house photo timing."
+      );
+    } finally {
+      setSavingDuration(false);
+    }
+  }
+
   const liveCount = photos.filter(
     (photo) => photo.status === "approved"
   ).length;
@@ -258,8 +323,8 @@ export default function HousePhotosPage() {
           </p>
           <h1 className="font-heading mt-2 text-4xl font-black">House Photos</h1>
           <p className="mt-2 max-w-2xl text-white/45">
-            Upload permanent Big Iron photos for the projector. These are
-            automatically mixed with approved guest submissions.
+            Upload permanent Big Iron photos for the projector. They play in
+            upload order and alternate with randomized approved guest submissions.
           </p>
         </header>
 
@@ -274,6 +339,46 @@ export default function HousePhotosPage() {
             {message}
           </div>
         ) : null}
+
+        <section className="mb-6 border border-[#c4202f]/45 bg-[#0d0d0d] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">
+                House Photo Display Time
+              </p>
+              <p className="mt-2 text-sm text-white/40">
+                House photos play in upload order. Choose how long each one stays on screen.
+              </p>
+            </div>
+
+            <div className="flex items-end gap-2">
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-black uppercase tracking-[0.14em] text-white/40">
+                  Seconds
+                </span>
+                <input
+                  type="number"
+                  min={2}
+                  max={60}
+                  step={1}
+                  value={houseDurationSeconds}
+                  onChange={(event) =>
+                    setHouseDurationSeconds(Number(event.target.value))
+                  }
+                  className="w-24 border border-white/15 bg-black px-3 py-3 text-center font-bold text-white"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => void saveHouseDuration()}
+                disabled={savingDuration}
+                className="bg-[#c4202f] px-5 py-3 font-bold text-white disabled:opacity-50"
+              >
+                {savingDuration ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </section>
 
         <section className="mb-8  border border-[#c4202f]/45 bg-[#0d0d0d] p-5 sm:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -333,7 +438,7 @@ export default function HousePhotosPage() {
           </div>
         ) : (
           <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {photos.map((photo) => {
+            {photos.map((photo, index) => {
               const working = workingId === photo.id;
               const live = photo.status === "approved";
 
@@ -352,9 +457,14 @@ export default function HousePhotosPage() {
 
                   <div className="p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="min-w-0 truncate text-sm font-semibold text-white/75">
-                        {photo.original_filename || "House photo"}
-                      </p>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="shrink-0 border border-[#c4202f]/55 px-2 py-1 text-[10px] font-black text-[#ff9aa3]">
+                          {index + 1}
+                        </span>
+                        <p className="min-w-0 truncate text-sm font-semibold text-white/75">
+                          {photo.original_filename || "House photo"}
+                        </p>
+                      </div>
                       <span
                         className={`shrink-0  px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${
                           live
