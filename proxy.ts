@@ -15,4 +15,4 @@ export async function proxy(request:NextRequest){
  }
  return NextResponse.next();
 }
-export const config={matcher:["/admin/:path*","/api/admin/:path*","/api/spotify/login","/api/spotify/callback"]};
+export const config={matcher:["/admin/:path*","/admin-dashboard/:path*","/api/admin/:path*","/api/spotify/login","/api/spotify/callback"]};
