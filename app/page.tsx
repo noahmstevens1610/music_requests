@@ -149,6 +149,9 @@ export default async function HomePage() {
                 About
               </a>
             ) : null}
+            <Link href="/admin" className="transition hover:text-white">
+              Admin Dashboard
+            </Link>
           </nav>
 
           <ActionLink
@@ -491,6 +494,9 @@ export default async function HomePage() {
                 Contact
               </a>
             ) : null}
+            <Link href="/admin" className="transition hover:text-white">
+              Admin Dashboard
+            </Link>
             {site.footer.showAdminLink ? (
               <Link
                 href="/admin/site-editor"
