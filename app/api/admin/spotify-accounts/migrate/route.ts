@@ -16,6 +16,8 @@ export async function POST(req: NextRequest) {
  let accessToken:string;
  try {accessToken=await getSpotifyAccessToken();}
  catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Legacy token expired"},{status:400});}
+ const {data:latestLegacy,error:latestError}=await supabaseAdmin.from("spotify_tokens").select("access_token,refresh_token,expires_at").eq("id",1).maybeSingle();
+ if(latestError||!latestLegacy?.refresh_token)return NextResponse.json({error:"Unable to reload updated legacy credentials"},{status:500});
  const me=await fetch("https://api.spotify.com/v1/me",{headers:{Authorization:"Bearer "+accessToken},cache:"no-store"});
  if(!me.ok)return NextResponse.json({error:"Spotify identity check failed. Reconnect the account."},{status:400});
  const profile=await me.json();
@@ -25,8 +27,8 @@ export async function POST(req: NextRequest) {
  const {data:active}=await supabaseAdmin.from("spotify_accounts").select("slot").eq("active",true).maybeSingle();
  const {error}=await supabaseAdmin.from("spotify_accounts").insert({
   slot:1, spotify_user_id:profile.id,display_name:profile.display_name||profile.id,
-  access_token:legacy.access_token||accessToken,refresh_token:legacy.refresh_token,
-  expires_at:legacy.expires_at??new Date(Date.now()+300000).toISOString(),
+  access_token:latestLegacy.access_token||accessToken,refresh_token:latestLegacy.refresh_token,
+  expires_at:latestLegacy.expires_at??new Date(Date.now()+300000).toISOString(),
   active:!active,updated_at:new Date().toISOString()
  });
  if(error)return NextResponse.json({error:error.message},{status:500});
