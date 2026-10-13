@@ -84,40 +84,17 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Event was not found." }, { status: 404 });
   }
 
-  const { data: requestRows, error: requestLookupError } = await supabaseAdmin
-    .from("requests")
-    .select("id")
-    .eq("event_id", event.id);
+  const { data: count, error: resetError } = await supabaseAdmin
+    .rpc("archive_and_reset_event_requests", { p_event_id: event.id });
 
-  if (requestLookupError) {
-    return NextResponse.json({ error: requestLookupError.message }, { status: 500 });
+  if (resetError) {
+    return NextResponse.json({ error: resetError.message }, { status: 500 });
   }
 
-  const requestIds = (requestRows ?? []).map((row) => row.id);
-
-  if (requestIds.length > 0) {
-    const { error: votesError } = await supabaseAdmin
-      .from("votes")
-      .delete()
-      .in("request_id", requestIds);
-
-    if (votesError) {
-      return NextResponse.json({ error: votesError.message }, { status: 500 });
-    }
-  }
-
-  const { error: deleteError } = await supabaseAdmin
-    .from("requests")
-    .delete()
-    .eq("event_id", event.id);
-
-  if (deleteError) {
-    return NextResponse.json({ error: deleteError.message }, { status: 500 });
-  }
-
+  const deletedCount = Number(count ?? 0);
   return NextResponse.json({
     success: true,
-    deletedCount: requestIds.length,
-    message: `${requestIds.length} request${requestIds.length === 1 ? "" : "s"} cleared.`,
+    deletedCount,
+    message: `${deletedCount} request${deletedCount === 1 ? "" : "s"} archived and cleared.`,
   });
 }
