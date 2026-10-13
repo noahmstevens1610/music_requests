@@ -1,72 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-
-async function createSessionToken(secret: string): Promise<string> {
-  const encodedSecret = new TextEncoder().encode(secret);
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    encodedSecret
-  );
-
-  return Array.from(new Uint8Array(digest))
-    .map((byte) =>
-      byte.toString(16).padStart(2, "0")
-    )
-    .join("");
-}
-
-export async function POST(request: NextRequest) {
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  const sessionSecret =
-    process.env.ADMIN_SESSION_SECRET;
-
-  if (!adminPassword || !sessionSecret) {
-    return NextResponse.json(
-      {
-        error:
-          "Admin authentication is not configured.",
-      },
-      { status: 500 }
-    );
-  }
-
-  let body: {
-    password?: string;
-  };
-
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid request." },
-      { status: 400 }
-    );
-  }
-
-  if (body.password !== adminPassword) {
-    return NextResponse.json(
-      { error: "Incorrect password." },
-      { status: 401 }
-    );
-  }
-
-  const sessionToken =
-    await createSessionToken(sessionSecret);
-
-  const response = NextResponse.json({
-    success: true,
-  });
-
-  response.cookies.set(
-    "big_iron_admin_session",
-    sessionToken,
-    {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false,
-      path: "/",
-      maxAge: 60 * 60 * 12,
-    }
-  );
-
-  return response;
+import {NextRequest,NextResponse} from "next/server";
+import {adminCookie,createSession,ownerPasswordMatches,comparePassword} from "@/lib/admin-session";
+import {supabaseAdmin} from "@/lib/supabase-admin";
+export async function POST(req:NextRequest){
+ const body=await req.json().catch(()=>({}));
+ if(typeof body.password!=="string"||!body.password) return NextResponse.json({error:"Password required"},{status:400});
+ let passwordId:string|null=null;
+ if(!ownerPasswordMatches(body.password)){
+   const {data,error}=await supabaseAdmin.from("admin_passwords").select("id,salt,password_hash,enabled").eq("enabled",true);
+   if(error) return NextResponse.json({error:"Login unavailable"},{status:500});
+   const match=(data??[]).find(p=>comparePassword(body.password,p.salt,p.password_hash));
+   if(!match) return NextResponse.json({error:"Incorrect password"},{status:401});
+   passwordId=match.id;
+ }
+ try{
+   const token=await createSession(passwordId);
+   const res=NextResponse.json({success:true,role:passwordId===null?"owner":"staff"});
+   res.cookies.set(adminCookie,token,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:43200});
+   return res;
+ }catch{return NextResponse.json({error:"Could not create session. Verify database migration."},{status:500});}
 }

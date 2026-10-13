@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSpotifyAccessToken } from "@/lib/spotify";
+import { getSession } from "@/lib/admin-session";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type QueueRequestBody = {
@@ -465,6 +466,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await getSession(request))) {
+    return NextResponse.json({ error: "Admin login required." }, { status: 401 });
+  }
   try {
     const body =
       (await request.json()) as QueueRequestBody;

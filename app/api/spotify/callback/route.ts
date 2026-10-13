@@ -1,99 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isOwner } from "@/lib/admin-session";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get("code");
-  const returnedState = request.nextUrl.searchParams.get("state");
-  const spotifyError = request.nextUrl.searchParams.get("error");
-
-  const savedState = request.cookies.get("spotify_oauth_state")?.value;
-
-  if (spotifyError) {
-    return NextResponse.json(
-      { error: `Spotify authorization failed: ${spotifyError}` },
-      { status: 400 }
-    );
+export async function GET(req: NextRequest) {
+  if (!(await isOwner(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const state = req.nextUrl.searchParams.get("state");
+  const code = req.nextUrl.searchParams.get("code");
+  const slot = Number(req.cookies.get("spotify_oauth_slot")?.value);
+  if (!state || state !== req.cookies.get("spotify_oauth_state")?.value || !code || ![1,2].includes(slot)) {
+    return NextResponse.json({ error: "Invalid Spotify authorization" }, { status: 400 });
   }
+  const id = process.env.SPOTIFY_CLIENT_ID;
+  const secret = process.env.SPOTIFY_CLIENT_SECRET;
+  const redirect = process.env.SPOTIFY_REDIRECT_URI;
+  if (!id || !secret || !redirect) return NextResponse.json({ error: "Spotify configuration missing" }, { status: 500 });
 
-  if (!code || !returnedState || returnedState !== savedState) {
-    return NextResponse.json(
-      { error: "Invalid Spotify authorization response." },
-      { status: 400 }
-    );
-  }
+  const tokenRes = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: { Authorization: "Basic " + Buffer.from(id + ":" + secret).toString("base64"), "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: redirect }),
+    cache: "no-store"
+  });
+  if (!tokenRes.ok) return NextResponse.json({ error: "Spotify authorization failed" }, { status: 400 });
+  const token = await tokenRes.json();
+  if (!token.access_token || !token.refresh_token) return NextResponse.json({ error: "Missing Spotify credentials" }, { status: 400 });
 
-  const clientId = process.env.SPOTIFY_CLIENT_ID;
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-  const redirectUri = process.env.SPOTIFY_REDIRECT_URI;
+  const meRes = await fetch("https://api.spotify.com/v1/me", { headers: { Authorization: "Bearer " + token.access_token }, cache: "no-store" });
+  if (!meRes.ok) return NextResponse.json({ error: "Unable to verify Spotify account" }, { status: 400 });
+  const profile = await meRes.json();
+  if (typeof profile.id !== "string") return NextResponse.json({ error: "Invalid Spotify account" }, { status: 400 });
 
-  if (!clientId || !clientSecret || !redirectUri) {
-    return NextResponse.json(
-      { error: "Spotify environment variables are missing." },
-      { status: 500 }
-    );
-  }
+  const { data: duplicate, error: duplicateError } = await supabaseAdmin.from("spotify_accounts").select("slot").eq("spotify_user_id", profile.id).neq("slot", slot).maybeSingle();
+  if (duplicateError) return NextResponse.json({ error: duplicateError.message }, { status: 500 });
+  if (duplicate) return NextResponse.json({ error: "Account already connected in another slot" }, { status: 409 });
+  const { data: current } = await supabaseAdmin.from("spotify_accounts").select("active").eq("slot", slot).maybeSingle();
+  const { data: active } = await supabaseAdmin.from("spotify_accounts").select("slot").eq("active", true).maybeSingle();
 
-  const basicAuthorization = Buffer.from(
-    `${clientId}:${clientSecret}`
-  ).toString("base64");
-
-  const tokenResponse = await fetch(
-    "https://accounts.spotify.com/api/token",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${basicAuthorization}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectUri,
-      }),
-      cache: "no-store",
-    }
-  );
-
-  const tokenData = await tokenResponse.json();
-
-  if (!tokenResponse.ok) {
-    return NextResponse.json(
-      {
-        error:
-          tokenData.error_description ??
-          tokenData.error ??
-          "Spotify token exchange failed.",
-      },
-      { status: tokenResponse.status }
-    );
-  }
-
-  const expiresAt = new Date(
-    Date.now() + tokenData.expires_in * 1000
-  ).toISOString();
-
-  const { error: databaseError } = await supabaseAdmin
-    .from("spotify_tokens")
-    .upsert({
-      id: 1,
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      expires_at: expiresAt,
-      updated_at: new Date().toISOString(),
-    });
-
-  if (databaseError) {
-    return NextResponse.json(
-      { error: databaseError.message },
-      { status: 500 }
-    );
-  }
-
-  const response = NextResponse.redirect(
-    new URL("/api/spotify/status", request.url)
-  );
-
-  response.cookies.delete("spotify_oauth_state");
-
-  return response;
+  const { error } = await supabaseAdmin.from("spotify_accounts").upsert({
+    slot, spotify_user_id: profile.id, display_name: profile.display_name || profile.id,
+    access_token: token.access_token, refresh_token: token.refresh_token,
+    expires_at: new Date(Date.now() + token.expires_in * 1000).toISOString(),
+    active: current?.active ?? !active, updated_at: new Date().toISOString()
+  }, { onConflict: "slot" });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const res = NextResponse.redirect(new URL("/admin/settings?spotify=connected", req.url));
+  res.cookies.delete("spotify_oauth_state");
+  res.cookies.delete("spotify_oauth_slot");
+  return res;
 }
