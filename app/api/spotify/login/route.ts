@@ -11,7 +11,7 @@ export async function POST(req:NextRequest){
  const state=randomBytes(24).toString("hex");
  const url=new URL("https://accounts.spotify.com/authorize");
  url.searchParams.set("response_type","code");url.searchParams.set("client_id",clientId);
- url.searchParams.set("scope",["playlist-modify-public","playlist-modify-private","user-read-currently-playing","user-read-recently-played","user-read-playback-state","user-modify-playback-state"].join(" "));
+ url.searchParams.set("scope",["playlist-modify-public","playlist-modify-private","user-read-currently-playing","user-read-recently-played","user-read-playback-state","user-modify-playback-state","user-read-private"].join(" "));
  url.searchParams.set("redirect_uri",redirectUri);url.searchParams.set("state",state);url.searchParams.set("show_dialog","true");
  const res=NextResponse.json({authorizeUrl:url.toString()});
  res.cookies.set("spotify_oauth_state",state,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",maxAge:600,path:"/"});
