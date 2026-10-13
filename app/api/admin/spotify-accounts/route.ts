@@ -19,13 +19,8 @@ export async function POST(req:NextRequest){
  if(error)return NextResponse.json({error:error.message},{status:500});
  if(!data)return NextResponse.json({error:"Slot is empty"},{status:404});
  try{await getSpotifyAccessToken(slot);}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Account is not ready"},{status:400});}
- // First disable the old slot; if activating the new one fails, restore the previous one.
- const {data:old}=await supabaseAdmin.from("spotify_accounts").select("slot").eq("active",true).maybeSingle();
- if(old?.slot===slot)return NextResponse.json({success:true});
- const {error:off}=await supabaseAdmin.from("spotify_accounts").update({active:false}).eq("active",true);
- if(off)return NextResponse.json({error:off.message},{status:500});
- const {error:on}=await supabaseAdmin.from("spotify_accounts").update({active:true}).eq("slot",slot);
- if(on){if(old)await supabaseAdmin.from("spotify_accounts").update({active:true}).eq("slot",old.slot);return NextResponse.json({error:on.message},{status:500});}
+ const {error:switchError}=await supabaseAdmin.rpc("activate_spotify_slot",{p_slot:slot});
+ if(switchError)return NextResponse.json({error:switchError.message},{status:500});
  return NextResponse.json({success:true});
 }
 export async function DELETE(req:NextRequest){
