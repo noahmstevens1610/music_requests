@@ -1,60 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
-
-async function createSessionToken(secret: string): Promise<string> {
-  const encodedSecret = new TextEncoder().encode(secret);
-  const digest = await crypto.subtle.digest("SHA-256", encodedSecret);
-
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+import {NextRequest,NextResponse} from "next/server";
+import {getSession} from "@/lib/admin-session";
+export async function proxy(request:NextRequest){
+ const path=request.nextUrl.pathname;
+ if(path==="/admin/login"||path==="/api/admin/login")return NextResponse.next();
+ const session=await getSession(request);
+ if(!session){
+   if(path.startsWith("/api/"))return NextResponse.json({error:"Unauthorized"},{status:401});
+   const url=new URL("/admin/login",request.url);
+   url.searchParams.set("next",path+request.nextUrl.search);
+   return NextResponse.redirect(url);
+ }
+ if(session.role!=="owner"&&(path.startsWith("/admin/settings")||path.startsWith("/api/admin/passwords")||path.startsWith("/api/admin/spotify-accounts")||path.startsWith("/api/spotify/login")||path.startsWith("/api/spotify/callback"))){
+   return NextResponse.json({error:"Owner access required"},{status:403});
+ }
+ return NextResponse.next();
 }
-
-export async function proxy(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-
-  const isLoginPage = pathname === "/admin/login";
-  const isLoginApi = pathname === "/api/admin/login";
-
-  if (isLoginPage || isLoginApi) {
-    return NextResponse.next();
-  }
-
-  const sessionSecret = process.env.ADMIN_SESSION_SECRET;
-
-  if (!sessionSecret) {
-    return NextResponse.json(
-      { error: "Admin authentication is not configured." },
-      { status: 500 }
-    );
-  }
-
-  const expectedToken = await createSessionToken(sessionSecret);
-
-  const sessionToken = request.cookies.get(
-    "big_iron_admin_session"
-  )?.value;
-
-  if (sessionToken === expectedToken) {
-    return NextResponse.next();
-  }
-
-  if (pathname.startsWith("/api/admin/")) {
-    return NextResponse.json(
-      { error: "Unauthorized." },
-      { status: 401 }
-    );
-  }
-
-  const loginUrl = new URL("/admin/login", request.url);
-
-  loginUrl.searchParams.set(
-    "next",
-    `${request.nextUrl.pathname}${request.nextUrl.search}`
-  );
-
-  return NextResponse.redirect(loginUrl);
-}
-
-export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
-};
+export const config={matcher:["/admin/:path*","/api/admin/:path*","/api/spotify/login","/api/spotify/callback"]};
