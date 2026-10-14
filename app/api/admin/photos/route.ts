@@ -1,34 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getSession } from "@/lib/admin-session";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type PhotoStatus = "pending" | "approved" | "rejected";
 
-async function createSessionToken(secret: string): Promise<string> {
-  const encodedSecret = new TextEncoder().encode(secret);
-  const digest = await crypto.subtle.digest("SHA-256", encodedSecret);
-
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function isAuthenticated(): Promise<boolean> {
-  const sessionSecret = process.env.ADMIN_SESSION_SECRET;
-
-  if (!sessionSecret) {
-    return false;
-  }
-
-  const cookieStore = await cookies();
-  const savedToken = cookieStore.get("big_iron_admin_session")?.value;
-
-  if (!savedToken) {
-    return false;
-  }
-
-  return savedToken === (await createSessionToken(sessionSecret));
-}
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -42,7 +17,7 @@ function withImageUrl<T extends { id: string }>(photo: T) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!(await isAuthenticated())) {
+  if (!(await getSession(request))) {
     return unauthorized();
   }
 
@@ -80,7 +55,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!(await isAuthenticated())) {
+  if (!(await getSession(request))) {
     return unauthorized();
   }
 
@@ -141,7 +116,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!(await isAuthenticated())) {
+  if (!(await getSession(request))) {
     return unauthorized();
   }
 
