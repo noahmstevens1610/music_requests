@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/admin-session";
-import sharp from "sharp";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
@@ -78,44 +77,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Always normalize the stored file to a browser-safe JPEG before
-    // sending it. This avoids mismatched MIME types, HEIC/HEIF browser
-    // support problems, and any storage metadata inconsistencies.
-    let browserSafeImage: Buffer;
+    // Uploads are already normalized to browser-safe JPEG. Serve bytes directly
+    // so previewing a photo does not require native Sharp/libvips at runtime.
+    const mime = storedFile.type?.startsWith("image/")
+      ? storedFile.type
+      : "image/jpeg";
 
-    try {
-      browserSafeImage = await sharp(sourceBuffer, {
-        failOn: "none",
-      })
-        .rotate()
-        .jpeg({
-          quality: 90,
-          mozjpeg: true,
-        })
-        .toBuffer();
-    } catch (decodeError) {
-      console.error(
-        "Stored photo could not be decoded:",
-        photo.storage_path,
-        decodeError
-      );
-
-      return NextResponse.json(
-        {
-          error:
-            "The stored file could not be decoded as an image. Please remove it and upload the photo again.",
-        },
-        { status: 422 }
-      );
-    }
-
-    const responseBody = Uint8Array.from(browserSafeImage).buffer;
-
-    return new Response(responseBody, {
+    return new Response(new Uint8Array(sourceBuffer), {
       status: 200,
       headers: {
-        "Content-Type": "image/jpeg",
-        "Content-Length": String(browserSafeImage.length),
+        "Content-Type": mime,
+        "Content-Length": String(sourceBuffer.length),
         "Cache-Control":
           photo.status === "approved"
             ? "public, max-age=300, s-maxage=300"
