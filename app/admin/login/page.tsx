@@ -2,10 +2,9 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -31,8 +30,7 @@ function LoginForm() {
         return;
       }
       setPassword("");
-      router.replace(data.role === "staff" && destination.startsWith("/admin/settings") ? "/admin" : destination);
-      router.refresh();
+      window.location.assign(data.role === "staff" && destination.startsWith("/admin/settings") ? "/admin" : destination);
     } catch {
       setError("Unable to connect. Please try again.");
     } finally {
