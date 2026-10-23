@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { preparePhotoForUpload, readPhotoApiResponse } from "@/lib/photo-upload-client";
 
 type HousePhoto = {
   id: string;
@@ -131,7 +132,7 @@ export default function HousePhotosPage() {
 
       for (const file of selectedFiles) {
         const formData = new FormData();
-        formData.append("photo", file);
+        formData.append("photo", await preparePhotoForUpload(file));
         formData.append("eventSlug", EVENT_SLUG);
 
         const response = await fetch("/api/admin/house-photos", {
@@ -145,11 +146,11 @@ export default function HousePhotosPage() {
           return;
         }
 
-        const data = await response.json();
+        const data = await readPhotoApiResponse(response);
 
         if (!response.ok) {
           throw new Error(
-            data.error ?? `Unable to upload ${file.name}.`
+            typeof data.error === "string" ? data.error : `Unable to upload ${file.name}.`
           );
         }
 
