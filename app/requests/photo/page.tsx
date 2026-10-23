@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { preparePhotoForUpload, readPhotoApiResponse } from "@/lib/photo-upload-client";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
 const EVENT_SLUG = "big-iron";
@@ -84,7 +85,7 @@ export default function SubmitPhotoPage() {
       setSuccess("");
 
       const formData = new FormData();
-      formData.append("photo", photo);
+      formData.append("photo", await preparePhotoForUpload(photo));
       formData.append("eventSlug", EVENT_SLUG);
       formData.append("deviceId", deviceId);
 
@@ -93,15 +94,14 @@ export default function SubmitPhotoPage() {
         body: formData,
       });
 
-      const data = await response.json();
+      const data = await readPhotoApiResponse(response);
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Unable to upload the photo.");
+        throw new Error((typeof data.error === "string" ? data.error : "Unable to upload the photo."));
       }
 
       setSuccess(
-        data.message ??
-          "Thanks! Your photo has been submitted for approval."
+        (typeof data.message === "string" ? data.message : "Thanks! Your photo has been submitted for approval.")
       );
       setPhoto(null);
     } catch (uploadError) {

@@ -65,7 +65,7 @@ export default function LineDancesPage() {
       const data = await readJsonResponse(response);
 
       if (response.status === 401) {
-        router.push("/admin-login");
+        router.replace("/admin/login?next=" + encodeURIComponent("/admin-dashboard/line-dances" + window.location.search));
         return;
       }
 
@@ -148,7 +148,7 @@ export default function LineDancesPage() {
       const data = await readJsonResponse(response);
 
       if (response.status === 401) {
-        router.push("/admin-login");
+        router.replace("/admin/login?next=" + encodeURIComponent("/admin-dashboard/line-dances" + window.location.search));
         return;
       }
 
@@ -212,7 +212,7 @@ export default function LineDancesPage() {
       const data = await response.json();
 
       if (response.status === 401) {
-        router.push("/admin-login");
+        router.replace("/admin/login?next=" + encodeURIComponent("/admin-dashboard/line-dances" + window.location.search));
         return;
       }
 
@@ -294,7 +294,7 @@ export default function LineDancesPage() {
       const data = await response.json();
 
       if (response.status === 401) {
-        router.push("/admin-login");
+        router.replace("/admin/login?next=" + encodeURIComponent("/admin-dashboard/line-dances" + window.location.search));
         return;
       }
 
@@ -365,7 +365,7 @@ export default function LineDancesPage() {
       const data = await response.json();
 
       if (response.status === 401) {
-        router.push("/admin-login");
+        router.replace("/admin/login?next=" + encodeURIComponent("/admin-dashboard/line-dances" + window.location.search));
         return;
       }
 
